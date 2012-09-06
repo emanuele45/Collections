@@ -634,7 +634,7 @@ function collections_editCollection ()
 		'width' => '100%',
 		'no_items_label' => $txt['collections_no_elements_found'],
 		'get_items' => array(
-			'function' => 'list_getElements',
+			'function' => 'list_getCollectionElements',
 			'params' => array($collection_data['collection_id'])
 		),
 		'columns' => array(
@@ -714,7 +714,7 @@ function collections_editCollection ()
 	$context['sub_template'] = 'show_list';
 }
 
-function list_getElements ($start, $items, $sort, $collection_id)
+function list_getCollectionElements ($start, $items, $sort, $collection_id)
 {
 	global $txt, $smcFunc;
 
