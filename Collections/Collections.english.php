@@ -51,6 +51,7 @@ $txt['collections_collection_page'] = 'Page';
 $txt['collections_collection_page_description'] = 'Chose the page this collections should be displayed';
 
 $txt['collections_list_not_found'] = 'Sorry, apparently this collection doesn\'t exist';
+$txt['collections_no_lists_in_page'] = 'This page is empty';
 
 $txt['delete_selected'] = 'Delete selected';
 ?>

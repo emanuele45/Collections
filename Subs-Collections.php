@@ -1494,9 +1494,15 @@ function collections_show_collection ()
 
 	$context['collection_lists'] = array();
 	$lists_info = array();
+	$titles = array();
 	while ($row = $smcFunc['db_fetch_assoc']($request))
+	{
+		$titles[] = $row['name'];
 		$lists_info[$row['id_list']] = $row;
+	}
 	$smcFunc['db_free_result']($request);
+
+	$context['page_title'] = empty($lists_info) ? $txt['collections_no_lists_in_page'] : implode(' - ', $titles);
 
 	// This will grab all the info about the columns
 	$request = $smcFunc['db_query']('', '
