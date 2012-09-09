@@ -39,7 +39,9 @@ $txt['collections_check'] = 'Checkbox';
 $txt['collections_int'] = 'Integer';
 $txt['collections_text'] = 'Text';
 $txt['collections_largetext'] = 'Large text';
-$txt['collections_select'] = 'Selectbox';
+$txt['collections_select'] = 'Dropdown box';
+$txt['collections_fixed'] = 'Fixed value';
+$txt['collections_increment'] = 'Incremental value';
 
 $txt['collections_collection_name'] = 'Collection name';
 $txt['collections_collection_name_description'] = 'This is the name of this collection';

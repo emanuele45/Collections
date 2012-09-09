@@ -255,8 +255,8 @@ function collections_listElements ()
 				'data' => array(
 					'sprintf' => array(
 						'format' => '
-							[<a href="' . $scripturl . '?action=admin;area=collections;sa=element;moveel;move=up;elem=%1$d;' . $context['session_var'] . '=' . $context['session_id'] . '"><img src="' . $settings['images_url'] . '/sort_up.gif" alt="" /></a>
-							<a href="' . $scripturl . '?action=admin;area=collections;sa=element;moveel;move=down;elem=%1$d;' . $context['session_var'] . '=' . $context['session_id'] . '"><img src="' . $settings['images_url'] . '/sort_down.gif" alt="" /></a>]
+							[<a href="' . $scripturl . '?action=admin;area=collections;sa=elements;moveel;move=up;elem=%1$d;' . $context['session_var'] . '=' . $context['session_id'] . '"><img src="' . $settings['images_url'] . '/sort_up.gif" alt="" /></a>
+							<a href="' . $scripturl . '?action=admin;area=collections;sa=elements;moveel;move=down;elem=%1$d;' . $context['session_var'] . '=' . $context['session_id'] . '"><img src="' . $settings['images_url'] . '/sort_down.gif" alt="" /></a>]
 						',
 						'params' => array(
 							'id_element' => false,
@@ -315,7 +315,7 @@ function collections_editElements ()
 	loadLanguage('Collections/Collections');
 
 	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : '';
-	$allowed_types = array('check', 'int', 'text', 'largetext', 'select');
+	$allowed_types = array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment');
 	if (!empty($current_elem) && isset($_POST['delete_element']))
 	{
 		checkSession();
@@ -332,7 +332,7 @@ function collections_editElements ()
 	$name = isset($_POST['name']) ? trim($smcFunc['htmlspecialchars']($_POST['name'])) : '';
 	$desc = isset($_POST['description']) ? trim($smcFunc['htmlspecialchars']($_POST['description'])) : '';
 	$selected = isset($_POST['type']) && in_array($_POST['type'], $allowed_types) ? $_POST['type'] : 'text';
-	$type_values = isset($_POST['type_values']) && $selected == 'select' ? trim($smcFunc['htmlspecialchars']($_POST['type_values'])) : '';
+	$type_values = isset($_POST['type_values']) && ($selected == 'select' || $selected == 'fixed') ? trim($smcFunc['htmlspecialchars']($_POST['type_values'])) : '';
 	$name_error = isset($_POST['name']) && empty($name) || $smcFunc['strlen']($name) > 255;
 	$desc_error = isset($_POST['description']) && empty($desc);
 
@@ -358,7 +358,6 @@ function collections_editElements ()
 
 	// We're going to want this for making our list.
 	require_once($sourcedir . '/Subs-List.php');
-
 	$listOptions = array(
 		'id' => 'collections_admin_list',
 		'title' => $txt['collections_edit_element'],
@@ -372,14 +371,14 @@ function collections_editElements ()
 						\'id\' => \'name\',
 						\'value\' => $txt[\'collections_field_name\'],
 						\'type\' => \'text\',
-						\'input\' => \'' . (empty($name) ? '' : $name) . '\',
+						\'input\' => \'' . (empty($name) ? '' : addslashes($name)) . '\',
 						\'error\' => \'' . (empty($name_error) ? '' : ' error') . '\'
 					),
 					array(
 						\'id\' => \'description\',
 						\'value\' => $txt[\'collections_field_description\'],
 						\'type\' => \'text\',
-						\'input\' => \'' . (empty($desc) ? '' : $desc) . '\',
+						\'input\' => \'' . (empty($desc) ? '' : addslashes($desc)) . '\',
 						\'error\' => \'' . (empty($desc_error) ? '' : ' error') . '\'
 					),
 					array(
@@ -388,8 +387,8 @@ function collections_editElements ()
 						\'type\' => \'select\',
 						\'selected\' => \'' . $selected . '\',
 						\'type_values\' => \'' . $type_values . '\',
-						\'input\' => \'' . (empty($desc) ? '' : $desc) . '\',
-						\'error\' => \'' . (empty($desc_error) ? '' : ' error') . '\'
+						\'input\' => \'' . (empty($selected) ? '' : addslashes($selected)) . '\',
+						\'error\' => \'' . (empty($type_error) ? '' : ' error') . '\'
 					)
 				);
 			'),
@@ -422,7 +421,7 @@ function collections_editElements ()
 						{
 							$return = \'
 						\' . sprintf(\'<select id="type_select" onChange="toggleInput(this)" name="%1$s" value="%2$s" class="%3$s">\', $data[\'id\'], $data[\'input\'], $data[\'error\']);
-							foreach (array(\'check\', \'int\', \'text\', \'largetext\', \'select\') as $type)
+							foreach (array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\') as $type)
 								$return .= \'
 							<option value="\' . $type . \'"\' . ($data[\'selected\'] == $type ? \' selected="selected"\' : \'\') . \'>\' . $txt[\'collections_\' . $type] . \'</option>\';
 							$return .= \'
@@ -431,7 +430,7 @@ function collections_editElements ()
 						<script type="text/javascript"><!-- // --><![CDATA[
 							function toggleInput(elem)
 							{
-								if (elem.options[elem.selectedIndex].value == \\\'select\\\')
+								if (elem.options[elem.selectedIndex].value == \\\'select\\\' || elem.options[elem.selectedIndex].value == \\\'fixed\\\')
 									document.getElementById(\\\'type_values\\\').style.display = \\\'\\\';
 								else
 									document.getElementById(\\\'type_values\\\').style.display = \\\'none\\\';
@@ -762,8 +761,6 @@ function collections_populateCollection ()
 
 		if (empty($errors))
 			redirectexit('action=admin;area=collections');
-		else
-			_debug($errors);
 	}
 
 	$request = $smcFunc['db_query']('', '
@@ -772,7 +769,8 @@ function collections_populateCollection ()
 		FROM {db_prefix}collections_entries as en
 		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
 		WHERE en.id_list = {int:current_list}
-			AND en.value = {int:enabled}',
+			AND en.value = {int:enabled}
+		ORDER BY el.position',
 		array(
 			'current_list' => $id_list,
 			'enabled' => 1,
@@ -791,7 +789,15 @@ function collections_populateCollection ()
 			),
 			'data' => array(
 				'function' => create_function('$datas', '
-						return collections_createItemsMask($datas[' . $row['id_entry'] . '], ' . $row['id_entry'] . ');
+					$default = array(' . call_user_func_array(
+						create_function('$row', '
+							$return = \'\';
+
+							foreach ($row as $key => $val)
+								$return .= \'\\\'\' . $key . \'\\\' => \\\'\' . addslashes($val) . \'\\\', \';
+							return $return;'), array($row)) . ');
+
+						return collections_createItemsMask(!empty($datas[' . $row['id_entry'] . ']) ? $datas[' . $row['id_entry'] . '] : $default, ' . $row['id_entry'] . ');
 				')
 			),
 		);
@@ -904,6 +910,8 @@ function collections_populateCollection ()
 
 function collections_createItemsMask ($data, $id_entry)
 {
+	global $txt;
+
 	$item_name = empty($data['id_collection']) ? 'collection_new[' . $id_entry . '][]' : 'collection_edit[' . $id_entry . '][' . $data['id_collection'] . ']';
 	if (!empty($data['type']))
 	{
@@ -926,6 +934,10 @@ function collections_createItemsMask ($data, $id_entry)
 		}
 		elseif ($data['type'] == 'largetext')
 			return '<textarea rows="10" cols="30" name="' . $item_name . '">' . (!empty($data['value']) ? $data['value'] : '') . '</textarea>';
+		elseif ($data['type'] == 'fixed')
+			return $data['type_values'];
+		elseif ($data['type'] == 'increment')
+			return $txt['collections_increment'];
 	}
 
 	return '<input type="text" name="' . $item_name . '" value="' . (!empty($data['value']) ? $data['value'] : '') . '" class="input_text" />';
@@ -956,9 +968,13 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $a
 		$tmp[$row['glue']][$row['id_entry']] = array_merge($ret[$row['id_entry']], $row);
 	$smcFunc['db_free_result']($request);
 
+	$counter = 1;
 	if (!empty($tmp))
 		foreach ($tmp as $val)
+		{
+			$val['increment'] = $counter++;
 			$return[] = $val;
+		}
 
 	if (!empty($admin))
 	{
@@ -1489,9 +1505,10 @@ function collections_show_collection ()
 		FROM {db_prefix}collections_entries as en
 		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
 		WHERE en.id_list IN ({array_int:current_list})
-			AND en.value = {int:enabled}',
+			AND en.value = {int:enabled}
+		ORDER BY el.position',
 		array(
-			'current_list' => array_keys($lists_info),
+			'current_list' => empty($lists_info) ? array(0) : array_keys($lists_info),
 			'enabled' => 1,
 		)
 	);
@@ -1510,10 +1527,21 @@ function collections_show_collection ()
 			'data' => array(
 				'function' => create_function('$datas', '
 					global $txt;
+					$default = array(' . call_user_func_array(
+						create_function('$row', '
+							$return = \'\';
 
-					$data = $datas[' . $row['id_entry'] . '];
+							foreach ($row as $key => $val)
+								$return .= \'\\\'\' . $key . \'\\\' => \\\'\' . addslashes($val) . \'\\\', \';
+							return $return;'), array($row)) . ');
+
+					$data = !empty($datas[' . $row['id_entry'] . ']) ? $datas[' . $row['id_entry'] . '] : $default;
 					if ($data[\'type\'] == \'check\')
 						return !empty($data[\'value\']) ? $txt[\'collections_yes\'] : $txt[\'collections_no\'];
+					elseif ($data[\'type\'] == \'fixed\')
+						return $data[\'type_values\'];
+					elseif ($data[\'type\'] == \'increment\')
+						return $datas[\'increment\'];
 					else
 						return empty($data[\'value\']) ? \'&nbsp;\' : $data[\'value\'];
 				')
@@ -1522,7 +1550,6 @@ function collections_show_collection ()
 		$params['columns'][] = $row;
 	}
 	$smcFunc['db_free_result']($request);
-
 
 	foreach ($lists_info as $row)
 	{
@@ -1533,7 +1560,7 @@ function collections_show_collection ()
 			'width' => '100%',
 			'no_items_label' => $txt['collections_no_elements_found'],
 			'get_items' => array(
-				'function' => 'list_getCollectionEntries', //collection_getListEntries
+				'function' => 'list_getCollectionEntries',
 				'params' => $params,
 			),
 			'columns' => $current_columns[$row['id_list']],
@@ -1558,11 +1585,6 @@ function collections_show_collection ()
 
 		$context['collection_lists'][] = 'collections_list_' . $row['id_list'];
 	}
-}
-
-function collection_getListEntries ($start, $items, $sort, $collection_id)
-{
-	return collection_getEntries($collection_id, 'id_element');
 }
 
 function collection_getEntries ($collections, $array_index = 'id_list')
