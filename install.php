@@ -84,7 +84,7 @@ function setup_hooks ()
 			'{db_prefix}collections_list',
 			array(
 				array(
-					'name' => 'id_collection',
+					'name' => 'id_list',
 					'type' => 'smallint',
 					'auto' => true,
 				),
@@ -97,9 +97,16 @@ function setup_hooks ()
 					'name' => 'description',
 					'type' => 'text'
 				),
+				// @TODO not yet implemented
 				array(
 					'name' => 'page',
 					'type' => 'smallint',
+					'default' => 0
+				),
+				// @TODO not yet implemented
+				array(
+					'name' => 'owner',
+					'type' => 'mediumint',
 					'default' => 0
 				),
 				array(
@@ -110,9 +117,9 @@ function setup_hooks ()
 			),
 			array(
 				array(
-					'name' => 'id_collection',
+					'name' => 'id_list',
 					'type' => 'primary',
-					'columns' => array('id_collection'),
+					'columns' => array('id_list'),
 				),
 			)
 		);
@@ -139,6 +146,15 @@ function setup_hooks ()
 					'type' => 'smallint',
 					'default' => 0
 				),
+				array(
+					'name' => 'c_type',
+					'type' => 'varchar',
+					'size' => 10
+				),
+				array(
+					'name' => 'type_values',
+					'type' => 'text'
+				),
 			),
 			array(
 				array(
@@ -158,12 +174,47 @@ function setup_hooks ()
 					'auto' => true,
 				),
 				array(
-					'name' => 'id_collection',
-					'type' => 'smallint'
+					'name' => 'id_list',
+					'type' => 'smallint',
+					'default' => 0
 				),
 				array(
 					'name' => 'id_element',
-					'type' => 'smallint'
+					'type' => 'smallint',
+					'default' => 0
+				),
+				array(
+					'name' => 'value',
+					'type' => 'tinyint',
+					'default' => 0
+				),
+			),
+			array(
+				array(
+					'name' => 'id_entry',
+					'type' => 'primary',
+					'columns' => array('id_entry'),
+				),
+			)
+		);
+
+		$smcFunc['db_create_table'](
+			'{db_prefix}collections_collections',
+			array(
+				array(
+					'name' => 'id_collection',
+					'type' => 'int',
+					'default' => 0
+				),
+				array(
+					'name' => 'glue',
+					'type' => 'int',
+					'default' => 0
+				),
+				array(
+					'name' => 'id_entry',
+					'type' => 'int',
+					'default' => 0
 				),
 				array(
 					'name' => 'value',
@@ -172,7 +223,7 @@ function setup_hooks ()
 			),
 			array(
 				array(
-					'name' => 'id_entry',
+					'name' => 'id_collection',
 					'type' => 'primary',
 					'columns' => array('id_entry'),
 				),
