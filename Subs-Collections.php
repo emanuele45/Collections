@@ -779,6 +779,7 @@ function collections_populateCollection ()
 
 	$current_columns = array();
 	$params = array();
+	$params['columns'] = array();
 	$makeScript = array();
 	while ($row = $smcFunc['db_fetch_assoc']($request))
 	{
@@ -948,6 +949,7 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $a
 	global $smcFunc, $context;
 
 	$ret = $return = array();
+
 	foreach ($params as $par)
 		$ret[$par['id_entry']] = $par;
 
@@ -1276,11 +1278,13 @@ function list_getCollectionElements ($start, $items, $sort, $collection_id)
 
 	$collection_name = '';
 	$collection_desc = '';
+	$page = 0;
 
 	if (isset($_REQUEST['save']))
 	{
 		$collection_name = !empty($_POST['collection_edit']['name']) ? $smcFunc['htmlspecialchars']($_POST['collection_edit']['name']) : '';
 		$collection_desc = !empty($_POST['collection_edit']['description']) ? $smcFunc['htmlspecialchars']($_POST['collection_edit']['description']) : '';
+		$page = isset($_POST['collection_edit']['page']) ? (int) $_POST['collection_edit']['page'] : 0;
 		foreach ($_POST['collection_edit'] as $key => $value)
 			$entries[$key] = $value;
 	}

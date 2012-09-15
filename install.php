@@ -97,7 +97,6 @@ function setup_hooks ()
 					'name' => 'description',
 					'type' => 'text'
 				),
-				// @TODO not yet implemented
 				array(
 					'name' => 'page',
 					'type' => 'smallint',
@@ -113,6 +112,11 @@ function setup_hooks ()
 					'name' => 'position',
 					'type' => 'smallint',
 					'default' => 0
+				),
+				// @TODO not yet implemented
+				array(
+					'name' => 'options',
+					'type' => 'text'
 				),
 			),
 			array(
