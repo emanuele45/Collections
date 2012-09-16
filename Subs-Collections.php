@@ -311,7 +311,7 @@ function collections_editElements ()
 {
 	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
 
-	loadTemplate('Collections');
+	loadTemplate('Collections/Collections');
 	loadLanguage('Collections/Collections');
 
 	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : '';
@@ -559,7 +559,7 @@ function collections_listCollections ()
 	elseif (isset($_POST['new']))
 		return CollectionsAdmin('edit_collection');
 
-	loadTemplate('Collections');
+	loadTemplate('Collections/Collections');
 	loadLanguage('Collections/Collections');
 
 	// We're going to want this for making our list.
@@ -742,7 +742,7 @@ function collections_populateCollection ()
 
 	$id_list = isset($_GET['id_list']) ? (int) $_GET['id_list'] : 0;
 	if (empty($id_list))
-		fatal_lang_error('collections_list_not_found');
+		fatal_lang_error('collections_list_not_found', false);
 
 	if (isset($_REQUEST['save']))
 	{
@@ -1480,7 +1480,7 @@ function collections_show_collection ()
 {
 	global $smcFunc, $context, $sourcedir, $txt;
 
-	loadTemplate('Collections');
+	loadTemplate('Collections/Collections');
 	loadLanguage('Collections/Collections');
 	$context['sub_template'] = 'collection_page';
 
@@ -1507,6 +1507,9 @@ function collections_show_collection ()
 	$smcFunc['db_free_result']($request);
 
 	$context['page_title'] = empty($lists_info) ? $txt['collections_no_lists_in_page'] : implode(' - ', $titles);
+
+	if (empty($lists_info))
+		fatal_lang_error('collections_page_not_found', false);
 
 	// This will grab all the info about the columns
 	$request = $smcFunc['db_query']('', '
@@ -1563,6 +1566,9 @@ function collections_show_collection ()
 
 	foreach ($lists_info as $row)
 	{
+		if (empty($current_columns[$row['id_list']]))
+			continue;
+
 		$params['id_list'] = $row['id_list'];
 		$listOptions = array(
 			'id' => 'collections_list_' . $row['id_list'],
