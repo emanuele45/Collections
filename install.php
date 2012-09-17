@@ -159,6 +159,11 @@ function setup_hooks ()
 					'name' => 'type_values',
 					'type' => 'text'
 				),
+				array(
+					'name' => 'is_sortable',
+					'type' => 'tinyint',
+					'default' => 0
+				),
 			),
 			array(
 				array(

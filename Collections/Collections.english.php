@@ -32,6 +32,7 @@ $txt['collections_description'] = 'Description';
 $txt['collections_field_name'] = 'Field name';
 $txt['collections_field_description'] = 'Field description';
 $txt['collections_field_type'] = 'Field type';
+$txt['collections_field_sortable'] = 'Field sortable';
 $txt['collections_field'] = 'Field';
 $txt['collections_field_value'] = 'Enable fields';
 

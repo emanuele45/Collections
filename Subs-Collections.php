@@ -316,6 +316,7 @@ function collections_editElements ()
 
 	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : '';
 	$allowed_types = array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment');
+	$sortable_types = array('int', 'text', 'largetext', 'select', 'increment');
 	if (!empty($current_elem) && isset($_POST['delete_element']))
 	{
 		checkSession();
@@ -332,27 +333,28 @@ function collections_editElements ()
 	$name = isset($_POST['name']) ? trim($smcFunc['htmlspecialchars']($_POST['name'])) : '';
 	$desc = isset($_POST['description']) ? trim($smcFunc['htmlspecialchars']($_POST['description'])) : '';
 	$selected = isset($_POST['type']) && in_array($_POST['type'], $allowed_types) ? $_POST['type'] : 'text';
+	$sort = !empty($_POST['sortable']) && in_array($selected, $sortable_types) ? true : false;
 	$type_values = isset($_POST['type_values']) && ($selected == 'select' || $selected == 'fixed') ? trim($smcFunc['htmlspecialchars']($_POST['type_values'])) : '';
 	$name_error = isset($_POST['name']) && empty($name) || $smcFunc['strlen']($name) > 255;
 	$desc_error = isset($_POST['description']) && empty($desc);
 
 	if (isset($_POST['save']) && empty($name_error) && empty($desc_error))
 	{
-		collections_saveElement($current_elem, $name, $desc, $selected, $type_values);
+		collections_saveElement($current_elem, $name, $desc, $selected, $type_values, $sort);
 		redirectexit('action=admin;area=collections;sa=elements');
 	}
 
 	if (empty($name) && empty($desc) && !empty($current_elem))
 	{
 		$request = $smcFunc['db_query']('', '
-			SELECT name, description, c_type, type_values
+			SELECT name, description, c_type, type_values, is_sortable
 			FROM {db_prefix}collections_elements
 			WHERE id_element = {int:element}',
 			array(
 				'element' => $current_elem
 			)
 		);
-		list($name, $desc, $selected, $type_values) = $smcFunc['db_fetch_row']($request);
+		list($name, $desc, $selected, $type_values, $sort) = $smcFunc['db_fetch_row']($request);
 		$smcFunc['db_free_result']($request);
 	}
 
@@ -389,7 +391,14 @@ function collections_editElements ()
 						\'type_values\' => \'' . $type_values . '\',
 						\'input\' => \'' . (empty($selected) ? '' : addslashes($selected)) . '\',
 						\'error\' => \'' . (empty($type_error) ? '' : ' error') . '\'
-					)
+					),
+					array(
+						\'id\' => \'sortable\',
+						\'value\' => $txt[\'collections_field_sortable\'],
+						\'type\' => \'check\',
+						\'input\' => ' . (empty($sort) ? 'false' : 'true') . ',
+						\'error\' => \'' . (empty($sort_error) ? '' : ' error') . '\'
+					),
 				);
 			'),
 		),
@@ -440,6 +449,8 @@ function collections_editElements ()
 					\';
 							return $return;
 						}
+						elseif ($data[\'type\'] == \'check\')
+							return sprintf(\'<input type="checkbox" name="%1$s"%2$s class="input_check%3$s" />\', $data[\'id\'], $data[\'input\'] ? \' checked="checked"\' : \'\', $data[\'error\']);
 						else
 							return sprintf(\'<input type="text" name="%1$s" value="%2$s" class="input_text%3$s" />\', $data[\'id\'], $data[\'input\'], $data[\'error\']);
 					'),
@@ -470,7 +481,7 @@ function collections_editElements ()
 	$context['sub_template'] = 'show_list';
 }
 
-function collections_saveElement($id, $name, $desc, $selected, $type_values)
+function collections_saveElement($id, $name, $desc, $selected, $type_values, $sort)
 {
 	global $smcFunc;
 
@@ -488,10 +499,10 @@ function collections_saveElement($id, $name, $desc, $selected, $type_values)
 		$smcFunc['db_insert']('',
 			'{db_prefix}collections_elements',
 			array(
-				'name' => 'string-255', 'description' => 'string', 'position' => 'int', 'c_type' => 'string-10', 'type_values' => 'string'
+				'name' => 'string-255', 'description' => 'string', 'position' => 'int', 'c_type' => 'string-10', 'type_values' => 'string', 'is_sortable' => 'int'
 			),
 			array(
-				$name, $desc, $last_position, $selected, $type_values
+				$name, $desc, $last_position, $selected, $type_values, $sort
 			),
 			array('id_element')
 		);
@@ -503,14 +514,16 @@ function collections_saveElement($id, $name, $desc, $selected, $type_values)
 				name = {string:name},
 				description = {string:desc},
 				c_type = {string:type},
-				type_values = {string:type_values}
+				type_values = {string:type_values},
+				is_sortable = {string:is_sortable}
 			WHERE id_element = {int:element}',
 			array(
 				'name' => $name,
 				'desc' => $desc,
 				'type' => $selected,
 				'type_values' => $type_values,
-				'element' => $id
+				'element' => $id,
+				'is_sortable' => $sort,
 			)
 		);
 }
@@ -944,11 +957,22 @@ function collections_createItemsMask ($data, $id_entry)
 	return '<input type="text" name="' . $item_name . '" value="' . (!empty($data['value']) ? $data['value'] : '') . '" class="input_text" />';
 }
 
-function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $admin = false)
+function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $admin = false, $is_sortable = false)
 {
 	global $smcFunc, $context;
 
 	$ret = $return = array();
+	if (!empty($sort))
+	{
+		$t = explode(' ', $sort);
+		$sort_id = $t[0];
+		$sort_dir = isset($t[1]) ? '-' : '';
+	}
+	else
+	{
+		$sort_id = 1;
+		$sort_dir = '';
+	}
 
 	foreach ($params as $par)
 		$ret[$par['id_entry']] = $par;
@@ -956,7 +980,7 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $a
 	$request = $smcFunc['db_query']('', '
 		SELECT co.id_collection, co.glue, co.id_entry, co.value,
 			en.id_element,
-			el.c_type as type
+			el.c_type as type, el.is_sortable
 		FROM {db_prefix}collections_collections as co
 		LEFT JOIN {db_prefix}collections_entries as en ON (co.id_entry = en.id_entry)
 		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
@@ -967,16 +991,25 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $a
 	);
 
 	while ($row = $smcFunc['db_fetch_assoc']($request))
-		$tmp[$row['glue']][$row['id_entry']] = array_merge($ret[$row['id_entry']], $row);
+	{
+		$tmp[$row['glue']][$row['id_element']] = array_merge($ret[$row['id_entry']], $row);
+		$b[$row['glue']][$row['id_entry']] = array_merge($ret[$row['id_entry']], $row);
+	}
 	$smcFunc['db_free_result']($request);
 
 	$counter = 1;
 	if (!empty($tmp))
-		foreach ($tmp as $val)
+		foreach ($tmp as $key => $val)
 		{
 			$val['increment'] = $counter++;
+			if ($is_sortable)
+				$val['sort'] = $val[$sort_id]['value'];
 			$return[] = $val;
 		}
+
+	if ($is_sortable)
+		usort($return, create_function('$v1, $v2', '
+			return ' . $sort_dir . 'strcmp($v1[\'sort\'], $v2[\'sort\']);'));
 
 	if (!empty($admin))
 	{
@@ -1478,7 +1511,7 @@ function collection_saveCollection ($data)
 
 function collections_show_collection ()
 {
-	global $smcFunc, $context, $sourcedir, $txt;
+	global $smcFunc, $context, $sourcedir, $txt, $scripturl;
 
 	loadTemplate('Collections/Collections');
 	loadLanguage('Collections/Collections');
@@ -1514,7 +1547,7 @@ function collections_show_collection ()
 	// This will grab all the info about the columns
 	$request = $smcFunc['db_query']('', '
 		SELECT en.id_list, en.id_entry, en.id_element,
-			el.name, el.description, el.c_type as type, el.type_values
+			el.name, el.description, el.c_type as type, el.type_values, el.is_sortable
 		FROM {db_prefix}collections_entries as en
 		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
 		WHERE en.id_list IN ({array_int:current_list})
@@ -1530,10 +1563,11 @@ function collections_show_collection ()
 	require_once($sourcedir . '/Subs-List.php');
 
 	$current_columns = array();
+	$is_sortable = array();
 	while ($row = $smcFunc['db_fetch_assoc']($request))
 	{
-		$header = empty($row['description']) ? $row['name'] : '<div title="' . $smcFunc['htmlspecialchars']($row['description']) . '">' . $row['name'] . '</div>';
-		$current_columns[$row['id_list']][$row['id_element']] = array(
+		$header = empty($row['description']) ? $row['name'] : '<span title="' . $smcFunc['htmlspecialchars']($row['description']) . '">' . $row['name'] . '</span>';
+		$current_columns[$row['id_list']]['a' . $row['id_element']] = array(
 			'header' => array(
 				'value' => $header,
 			),
@@ -1548,7 +1582,7 @@ function collections_show_collection ()
 								$return .= \'\\\'\' . $key . \'\\\' => \\\'\' . addslashes($val) . \'\\\', \';
 							return $return;'), array($row)) . ');
 
-					$data = !empty($datas[' . $row['id_entry'] . ']) ? $datas[' . $row['id_entry'] . '] : $default;
+					$data = !empty($datas[' . $row['id_element'] . ']) ? $datas[' . $row['id_element'] . '] : $default;
 					if ($data[\'type\'] == \'check\')
 						return !empty($data[\'value\']) ? $txt[\'collections_yes\'] : $txt[\'collections_no\'];
 					elseif ($data[\'type\'] == \'fixed\')
@@ -1557,9 +1591,19 @@ function collections_show_collection ()
 						return $datas[\'increment\'];
 					else
 						return empty($data[\'value\']) ? \'&nbsp;\' : $data[\'value\'];
-				')
+				'),
 			),
 		);
+
+		if (!empty($row['is_sortable']))
+		{
+			$is_sortable[$row['id_list']] = true;
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['sort'] = array(
+				'default' => $row['id_element'],
+				'reverse' => $row['id_element'] . ' desc',
+			);
+		}
+
 		$params['columns'][] = $row;
 	}
 	$smcFunc['db_free_result']($request);
@@ -1570,10 +1614,13 @@ function collections_show_collection ()
 			continue;
 
 		$params['id_list'] = $row['id_list'];
+		$params['admin'] = false;
+		$params['is_sortable'] = !empty($is_sortable[$row['id_list']]);
 		$listOptions = array(
 			'id' => 'collections_list_' . $row['id_list'],
 			'title' => $row['name'],
 			'width' => '100%',
+			'base_href' => $scripturl . '?action=collections;page=' . $page,
 			'no_items_label' => $txt['collections_no_elements_found'],
 			'get_items' => array(
 				'function' => 'list_getCollectionEntries',
@@ -1595,6 +1642,12 @@ function collections_show_collection ()
 				),
 			),
 		);
+
+		if ($params['is_sortable'])
+			$listOptions += array(
+				'default_sort_col' => 'a1',
+				'default_sort_dir' => 'asc',
+			);
 
 		// Create the request list.
 		createList($listOptions);
