@@ -311,7 +311,7 @@ function collections_editElements ()
 {
 	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
 
-	loadTemplate('Collections/Collections');
+	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
 
 	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : '';
@@ -572,7 +572,7 @@ function collections_listCollections ()
 	elseif (isset($_POST['new']))
 		return CollectionsAdmin('edit_collection');
 
-	loadTemplate('Collections/Collections');
+	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
 
 	// We're going to want this for making our list.
@@ -1513,7 +1513,7 @@ function collections_show_collection ()
 {
 	global $smcFunc, $context, $sourcedir, $txt, $scripturl;
 
-	loadTemplate('Collections/Collections');
+	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
 	$context['sub_template'] = 'collection_page';
 
