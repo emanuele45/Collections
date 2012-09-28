@@ -164,6 +164,10 @@ function setup_hooks ()
 					'type' => 'tinyint',
 					'default' => 0
 				),
+				array(
+					'name' => 'options',
+					'type' => 'text'
+				),
 			),
 			array(
 				array(
