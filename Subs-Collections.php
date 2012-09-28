@@ -1200,7 +1200,7 @@ function collections_insertNewItems ($items, $id_list)
 		),
 		$inserts,
 		array(
-			'id_list'
+			'id_collection'
 		)
 	);
 }

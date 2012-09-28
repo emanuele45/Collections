@@ -217,7 +217,7 @@ function setup_hooks ()
 				array(
 					'name' => 'id_collection',
 					'type' => 'int',
-					'default' => 0
+					'auto' => true,
 				),
 				array(
 					'name' => 'glue',
@@ -238,7 +238,7 @@ function setup_hooks ()
 				array(
 					'name' => 'id_collection',
 					'type' => 'primary',
-					'columns' => array('id_entry'),
+					'columns' => array('id_collection'),
 				),
 			)
 		);
