@@ -303,6 +303,70 @@ function collections_listElements ()
 	$context['sub_template'] = 'show_list';
 }
 
+function collections_createElementMask ($data)
+{
+	global $txt;
+
+	if ($data['type'] == 'select')
+	{
+		$return = '
+	<select id="' . $data['id'] . '" ' . $data['options'] . ' name="' . $data['id'] . '" class="' . (!empty($data['error']) ? ' error' : '') . '">';
+
+		foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
+			$return .= '
+		<option value="' . $type . '"' . ($data['input'] == $type ? ' selected="selected"' : '') . '>' . $txt['collections_' . $type] . '</option>';
+
+		$return .= '
+	</select>';
+	}
+	elseif ($data['type'] == 'check')
+		$return = '
+			<input id="' . $data['id'] . '" type="checkbox" ' . $data['options'] . ' name="' . $data['id'] . '"' . ($data['input'] ? ' checked="checked"' : '') . ' class="input_check' . (!empty($data['error']) ? ' error' : '') . '" />';
+	else
+		$return = '
+			<input id="' . $data['id'] . '" type="text" ' . $data['options'] . ' name="' . $data['id'] . '" value="' . $data['input'] . '" class="input_text' . (!empty($data['error']) ? ' error' : '') . '" />';
+
+	if (!empty($data['children']))
+		foreach ($data['children'] as $child)
+			$return .= collections_createElementMask($child);
+
+	return $return . $data['script'];
+}
+
+function collections_loadElementsMask ($start, $items, $sort, $valid_options, $params, $errors, $level = 0)
+{
+	global $txt;
+
+	$options = array();
+
+	foreach ($valid_options as $key => $option)
+		if (isset($option['has_children']))
+			foreach ($option['has_children'] as $child_id)
+				$valid_options[$child_id]['skip'][$level] = true;
+
+	foreach ($valid_options as $key => $option)
+	{
+		if (!empty($option['skip'][$level]))
+			continue;
+
+		$options[$key] = array(
+			'id' => $key,
+			'value' => isset($txt['collections_field_' . $key]) ? $txt['collections_field_' . $key] : '',
+			'type' => $option['type'],
+			'input' => $params[$key],
+			'error' => !empty($errors[$key]),
+			'options' => !empty($option['options']) ? $option['options'] : '',
+			'script' => !empty($option['script']) ? '
+	<script type="text/javascript"><!-- // --><![CDATA[' . $option['script'] . '
+	// ]]></script>' : '',
+		);
+		if (isset($option['has_children']))
+			foreach ($option['has_children'] as $child_id)
+				$options[$key]['children'] = collections_loadElementsMask(null, null, null, array($child_id => $valid_options[$child_id]), $params, $errors, $level + 1);
+	}
+	return $options;
+}
+
 function collections_editElements ()
 {
 	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
@@ -327,29 +391,44 @@ function collections_editElements ()
 
 	$valid_options = array(
 		'name' => array(
-			'function' => create_function('$data', '
+			'type' => 'text',
+			'validate' => create_function('$data', '
 				global $smcFunc;
 				return trim($smcFunc[\'htmlspecialchars\']($data));'
 			),
 			'default' => '',
 		),
 		'description' => array(
-			'function' => create_function('$data', '
+			'type' => 'text',
+			'validate' => create_function('$data', '
 				global $smcFunc;
 				return trim($smcFunc[\'htmlspecialchars\']($data));'
 			),
 			'default' => '',
 		),
 		'selected' => array(
-			'function' => create_function('$data', '
+			'type' => 'select',
+			'validate' => create_function('$data', '
 				$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
 				return in_array($data, $allowed_types) ? $data : \'text\';'
 			),
 			'post_name' => 'type',
 			'default' => 'text',
+			'has_children' => array('type_values'),
+			'options' => 'onchange="toggleInput(this)"',
+			'script' => '
+		function toggleInput(elem)
+		{
+			if (elem.options[elem.selectedIndex].value == \'select\' || elem.options[elem.selectedIndex].value == \'fixed\')
+				document.getElementById(\'type_values\').style.display = \'\';
+			else
+				document.getElementById(\'type_values\').style.display = \'none\';
+		}
+		toggleInput(document.getElementById(\'selected\'));',
 		),
 		'sortable' => array(
-			'function' => create_function('$data, $selected', '
+			'type' => 'check',
+			'validate' => create_function('$data, $selected', '
 				$sortable_types = array(\'int\', \'text\', \'largetext\', \'select\', \'increment\');
 				return !empty($data) && in_array($selected, $sortable_types) ? 1 : 0;'
 			),
@@ -357,7 +436,8 @@ function collections_editElements ()
 			'default' => 0,
 		),
 		'type_values' => array(
-			'function' => create_function('$data, $selected', '
+			'type' => 'text',
+			'validate' => create_function('$data, $selected', '
 				global $smcFunc;
 				return isset($data) && ($selected == \'select\' || $selected == \'fixed\') ? trim($smcFunc[\'htmlspecialchars\']($data)) : \'\';'
 				),
@@ -365,15 +445,25 @@ function collections_editElements ()
 			'default' => '',
 		),
 		'bb_code' => array(
-			'function' => create_function('$data, $selected', '
+			'type' => 'check',
+			'validate' => create_function('$data, $selected', '
 				$bbcodable_types = array(\'text\', \'largetext\', \'select\');
 				return !empty($data) && in_array($selected, $bbcodable_types) ? 1 : 0;'
 			),
 			'require' => 'selected',
 			'default' => 0,
 		),
+		'head_styles' => array(
+			'type' => 'text',
+			'validate' => create_function('$data', '
+				global $smcFunc;
+				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+			),
+			'default' => '',
+		),
 		'col_styles' => array(
-			'function' => create_function('$data', '
+			'type' => 'text',
+			'validate' => create_function('$data', '
 				global $smcFunc;
 				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
 			),
@@ -385,19 +475,19 @@ function collections_editElements ()
 		if (isset($_POST[isset($check['post_name']) ? $check['post_name'] : $key]))
 		{
 			if (isset($check['require']) && isset($params[$check['require']]))
-				$params[$key] = $check['function']($_POST[isset($check['post_name']) ? $check['post_name'] : $key], $params[$check['require']]);
+				$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key], $params[$check['require']]);
 			elseif (!isset($check['require']))
-				$params[$key] = $check['function']($_POST[isset($check['post_name']) ? $check['post_name'] : $key]);
+				$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key]);
 			else
 				$params[$key] = $check['default'];
 		}
 		else
 			$params[$key] = $check['default'];
 
-	$name_error = isset($_POST['name']) && empty($params['name']) || $smcFunc['strlen']($params['name']) > 255;
-	$desc_error = isset($_POST['description']) && empty($params['description']);
+	$errors['name'] = isset($_POST['name']) && empty($params['name']) || $smcFunc['strlen']($params['name']) > 255;
+	$errors['description'] = isset($_POST['description']) && empty($params['description']);
 
-	if (isset($_POST['save']) && empty($name_error) && empty($desc_error))
+	if (isset($_POST['save']) && empty($errors['name']) && empty($errors['description']))
 	{
 		collections_saveElement($current_elem, $params);
 		redirectexit('action=admin;area=collections;sa=elements');
@@ -428,56 +518,12 @@ function collections_editElements ()
 		'title' => $txt['collections_edit_element'],
 		'width' => '100%',
 		'get_items' => array(
-			'function' => create_function('', '
-				global $txt;
-
-				return array(
-					array(
-						\'id\' => \'name\',
-						\'value\' => $txt[\'collections_field_name\'],
-						\'type\' => \'text\',
-						\'input\' => \'' . (empty($params['name']) ? '' : addslashes($params['name'])) . '\',
-						\'error\' => \'' . (empty($name_error) ? '' : ' error') . '\'
-					),
-					array(
-						\'id\' => \'description\',
-						\'value\' => $txt[\'collections_field_description\'],
-						\'type\' => \'text\',
-						\'input\' => \'' . (empty($params['description']) ? '' : addslashes($params['description'])) . '\',
-						\'error\' => \'' . (empty($desc_error) ? '' : ' error') . '\'
-					),
-					array(
-						\'id\' => \'type\',
-						\'value\' => $txt[\'collections_field_type\'],
-						\'type\' => \'select\',
-						\'selected\' => \'' . $params['selected'] . '\',
-						\'type_values\' => \'' . $params['type_values'] . '\',
-						\'input\' => \'' . (empty($params['selected']) ? '' : addslashes($params['selected'])) . '\',
-						\'error\' => \'' . (empty($type_error) ? '' : ' error') . '\'
-					),
-					array(
-						\'id\' => \'sortable\',
-						\'value\' => $txt[\'collections_field_sortable\'],
-						\'type\' => \'check\',
-						\'input\' => ' . (empty($params['sortable']) ? 'false' : 'true') . ',
-						\'error\' => \'' . (empty($sort_error) ? '' : ' error') . '\'
-					),
-					array(
-						\'id\' => \'bb_code\',
-						\'value\' => $txt[\'collections_field_bb_code\'],
-						\'type\' => \'check\',
-						\'input\' => ' . (empty($params['bb_code']) ? 'false' : 'true') . ',
-						\'error\' => \'' . (empty($bb_code_error) ? '' : ' error') . '\'
-					),
-					array(
-						\'id\' => \'col_styles\',
-						\'value\' => $txt[\'collections_field_col_styles\'],
-						\'type\' => \'text\',
-						\'input\' => \'' . (empty($params['col_styles']) ? '' : $params['col_styles']) . '\',
-						\'error\' => \'' . (empty($col_styles_error) ? '' : ' error') . '\'
-					),
-				);
-			'),
+			'function' => 'collections_loadElementsMask',
+			'params' => array(
+				$valid_options,
+				$params,
+				$errors
+			)
 		),
 		'columns' => array(
 			'name' => array(
@@ -501,35 +547,7 @@ function collections_editElements ()
 				),
 				'data' => array(
 					'function' => create_function('$data', '
-						global $txt;
-
-						if ($data[\'type\'] == \'select\')
-						{
-							$return = \'
-						\' . sprintf(\'<select id="type_select" onChange="toggleInput(this)" name="%1$s" value="%2$s" class="%3$s">\', $data[\'id\'], $data[\'input\'], $data[\'error\']);
-							foreach (array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\') as $type)
-								$return .= \'
-							<option value="\' . $type . \'"\' . ($data[\'selected\'] == $type ? \' selected="selected"\' : \'\') . \'>\' . $txt[\'collections_\' . $type] . \'</option>\';
-							$return .= \'
-						</select>
-						<input type="text" id="type_values" name="type_values" value="\' . $data[\'type_values\'] . \'" class="input_text" />
-						<script type="text/javascript"><!-- // --><![CDATA[
-							function toggleInput(elem)
-							{
-								if (elem.options[elem.selectedIndex].value == \\\'select\\\' || elem.options[elem.selectedIndex].value == \\\'fixed\\\')
-									document.getElementById(\\\'type_values\\\').style.display = \\\'\\\';
-								else
-									document.getElementById(\\\'type_values\\\').style.display = \\\'none\\\';
-							}
-							toggleInput(document.getElementById(\\\'type_select\\\'));
-						// ]]></script>
-					\';
-							return $return;
-						}
-						elseif ($data[\'type\'] == \'check\')
-							return sprintf(\'<input type="checkbox" name="%1$s"%2$s class="input_check%3$s" />\', $data[\'id\'], $data[\'input\'] ? \' checked="checked"\' : \'\', $data[\'error\']);
-						else
-							return sprintf(\'<input type="text" name="%1$s" value="%2$s" class="input_text%3$s" />\', $data[\'id\'], $data[\'input\'], $data[\'error\']);
+						return collections_createElementMask($data);
 					'),
 				),
 			),
@@ -564,6 +582,7 @@ function collections_saveElement($id, $params)
 
 	$other_options = array(
 		'bb_code' => 0,
+		'head_styles' => '',
 		'col_styles' => '',
 	);
 
@@ -1717,8 +1736,11 @@ function collections_show_collection ()
 			);
 		}
 
+		if (!empty($row['head_styles']))
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['header']['style'] = $row['head_styles'];
+
 		if (!empty($row['col_styles']))
-			$current_columns[$row['id_list']]['a' . $row['id_element']]['header']['style'] = $row['col_styles'];
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['data']['style'] = $row['col_styles'];
 
 		$params['columns'][] = $row;
 	}
