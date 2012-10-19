@@ -576,7 +576,7 @@ function collections_editElements ()
 	$context['sub_template'] = 'show_list';
 }
 
-function collections_saveElement($id, $params)
+function collections_saveElement ($id, $params)
 {
 	global $smcFunc;
 
@@ -641,7 +641,7 @@ function collections_saveElement($id, $params)
 }
 
 // @todo: a lot of things...
-function collections_deleteElement($elements)
+function collections_deleteElement ($elements)
 {
 	global $smcFunc;
 
@@ -924,7 +924,7 @@ function collections_populateCollection ()
 								$return .= \'\\\'\' . $key . \'\\\' => \\\'\' . addslashes($val) . \'\\\', \';
 							return $return;'), array($row)) . ');
 
-						return collections_createItemsMask(!empty($datas[' . $row['id_element'] . ']) ? $datas[' . $row['id_element'] . '] : $default, ' . $row['id_element'] . ');
+						return collections_createItemsMask(!empty($datas[' . $row['id_element'] . ']) ? $datas[' . $row['id_element'] . '] : $default, ' . $row['id_element'] . ', !empty($datas[\'glue\']) ? $datas[\'glue\'] : false);
 				')
 			),
 		);
@@ -1035,15 +1035,17 @@ function collections_populateCollection ()
 	$context['sub_template'] = 'show_list';
 }
 
-function collections_createItemsMask ($data, $id_entry)
+function collections_createItemsMask ($data, $id_entry, $glue = false)
 {
 	global $txt;
 
 	$item_name = empty($data['id_collection']) ? 'collection_new[' . $id_entry . '][]' : 'collection_edit[' . $id_entry . '][' . $data['id_collection'] . ']';
+	$glue_input = !empty($glue) ? '<input type="hidden" name="glue_' . $item_name . '" value="' . $glue . '" />' : '';
+
 	if (!empty($data['type']))
 	{
 		if ($data['type'] == 'check')
-			return '<input type="checkbox" name="' . $item_name . '" ' . 
+			$return = '<input type="checkbox" name="' . $item_name . '" ' . 
 			(!empty($data['value']) ? 'checked="checked" ' : '') . 'class="input_check" />';
 		elseif ($data['type'] == 'select')
 		{
@@ -1057,18 +1059,19 @@ function collections_createItemsMask ($data, $id_entry)
 					<option value="' . $entry . '"' . (!empty($data['value']) && $data['value'] == $entry ? ' selected="selected"' : '' ) . '>' . $entry . '</option>';
 			$return .= '
 				</select>';
-			return $return;
 		}
 		elseif ($data['type'] == 'largetext')
-			return '<textarea rows="10" cols="30" name="' . $item_name . '">' . (isset($data['value']) ? $data['value'] : '') . '</textarea>';
+			$return = '<textarea rows="10" cols="30" name="' . $item_name . '">' . (isset($data['value']) ? $data['value'] : '') . '</textarea>';
 		elseif ($data['type'] == 'fixed')
-			return $data['type_values'];
+			$return = $data['type_values'];
 		elseif ($data['type'] == 'increment')
-			return $txt['collections_increment'];
+			$return = $txt['collections_increment'];
 	}
-
 	// May be worth use htmlspecialchars
-	return '<input type="text" name="' . $item_name . '" value="' . (isset($data['value']) ? $data['value'] : '') . '" class="input_text" />';
+	else
+		$return = '<input type="text" name="' . $item_name . '" value="' . (isset($data['value']) ? $data['value'] : '') . '" class="input_text" />';
+
+	return $return . $glue_input;
 }
 
 function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $is_sortable = false)
@@ -1117,6 +1120,7 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $i
 			$val['increment'] = $counter++;
 			if ($is_sortable)
 				$val['sort'] = $val[$sort_id]['value'];
+			$val['glue'] = $key;
 			$return[] = $val;
 		}
 
@@ -1203,9 +1207,10 @@ function collections_insertNewItems ($items, $id_list)
 	$inserts = array();
 	foreach ($items as $key => $values)
 	{
-		$glue = $start_glue;
+		$possible_glue = isset($_POST['glue_collection_new'][$key]) ? (int) $_POST['glue_collection_new'][$key] : 0;
+		$glue = !empty($possible_glue) ? $possible_glue : $start_glue;
 		foreach ($values as $val)
-			if (collections_isValidEntry($val, $validation_data[$key]['type'], $validation_data[$key]['type_values']))
+			if (collections_isValidEntry($val, $validation_data[$key]['type'], $validation_data[$key]['type_values']) && !empty($val))
 				$inserts[] = array($validation_data[$key]['id_entry'], $glue++, $val);
 	}
 
