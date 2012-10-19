@@ -1845,4 +1845,294 @@ function collection_getElements ()
 
 	return $return;
 }
+
+class collections_elements extends collections_functions
+{
+	protected $valid_options = array();
+
+	private $params = array();
+	private $errors = array();
+
+	public function __construct ($validate = true)
+	{
+		$this->valid_options = array(
+		'name' => array(
+			'type' => 'text',
+			'validate' => create_function('$data', '
+				global $smcFunc;
+				return trim($smcFunc[\'htmlspecialchars\']($data));'
+			),
+			'default' => '',
+		),
+		'description' => array(
+			'type' => 'text',
+			'validate' => create_function('$data', '
+				global $smcFunc;
+				return trim($smcFunc[\'htmlspecialchars\']($data));'
+			),
+			'default' => '',
+		),
+		'selected' => array(
+			'type' => 'select',
+			'validate' => create_function('$data', '
+				$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
+				return in_array($data, $allowed_types) ? $data : \'text\';'
+			),
+			'post_name' => 'type',
+			'default' => 'text',
+			'has_children' => array('type_values'),
+			'options' => 'onchange="toggleInput(this)"',
+			'script' => '
+		function toggleInput(elem)
+		{
+			if (elem.options[elem.selectedIndex].value == \'select\' || elem.options[elem.selectedIndex].value == \'fixed\')
+				document.getElementById(\'type_values\').style.display = \'\';
+			else
+				document.getElementById(\'type_values\').style.display = \'none\';
+		}
+		toggleInput(document.getElementById(\'selected\'));',
+		),
+		'sortable' => array(
+			'type' => 'check',
+			'validate' => create_function('$data, $selected', '
+				$sortable_types = array(\'int\', \'text\', \'largetext\', \'select\', \'increment\');
+				return !empty($data) && in_array($selected, $sortable_types) ? 1 : 0;'
+			),
+			'require' => 'selected',
+			'default' => 0,
+		),
+		'type_values' => array(
+			'type' => 'text',
+			'validate' => create_function('$data, $selected', '
+				global $smcFunc;
+				return isset($data) && ($selected == \'select\' || $selected == \'fixed\') ? trim($smcFunc[\'htmlspecialchars\']($data)) : \'\';'
+				),
+			'require' => 'selected',
+			'default' => '',
+		),
+		'bb_code' => array(
+			'type' => 'check',
+			'validate' => create_function('$data, $selected', '
+				$bbcodable_types = array(\'text\', \'largetext\', \'select\');
+				return !empty($data) && in_array($selected, $bbcodable_types) ? 1 : 0;'
+			),
+			'require' => 'selected',
+			'default' => 0,
+		),
+		'head_styles' => array(
+			'type' => 'text',
+			'validate' => create_function('$data', '
+				global $smcFunc;
+				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+			),
+			'default' => '',
+		),
+		'col_styles' => array(
+			'type' => 'text',
+			'validate' => create_function('$data', '
+				global $smcFunc;
+				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+			),
+			'default' => '',
+		),
+	);
+
+		if ($validate)
+			$this->validate();
+	}
+
+	public function validate ()
+	{
+		foreach ($this->valid_options as $key => $check)
+			if (isset($_POST[isset($check['post_name']) ? $check['post_name'] : $key]))
+			{
+				if (isset($check['require']) && isset($params[$check['require']]))
+					$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key], $params[$check['require']]);
+				elseif (!isset($check['require']))
+					$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key]);
+				else
+					$params[$key] = $check['default'];
+			}
+			else
+				$params[$key] = $check['default'];
+
+		$errors['name'] = isset($_POST['name']) && empty($params['name']) || $smcFunc['strlen']($params['name']) > 255;
+		$errors['description'] = isset($_POST['description']) && empty($params['description']);
+	}
+
+	public function save ($id, $params)
+	{
+		global $smcFunc;
+
+		$other_options = array(
+			'bb_code' => 0,
+			'head_styles' => '',
+			'col_styles' => '',
+		);
+
+		$additional = array();
+		foreach ($other_options as $option => $default)
+			if (isset($params[$option]))
+				$additional[$option] = $params[$option];
+			else
+				$additional[$option] = $default;
+
+		$additional = serialize($additional);
+
+		if (empty($id))
+		{
+			list($last_position) = $this->db_query_row('', '
+				SELECT MAX(position)
+				FROM {db_prefix}collections_elements',
+				array()
+			);
+			$last_position++;
+
+			$this->db_insert('',
+				'{db_prefix}collections_elements',
+				array(
+					'name' => 'string-255', 'description' => 'string', 'position' => 'int', 'c_type' => 'string-10', 'type_values' => 'string', 'is_sortable' => 'int', 'options' => 'string'
+				),
+				array(
+					$params['name'], $params['description'], $last_position, $params['selected'], $params['type_values'], $params['sortable'], $additional
+				),
+				array('id_element')
+			);
+		}
+		else
+			$this->db_query('', '
+				UPDATE {db_prefix}collections_elements
+				SET
+					name = {string:name},
+					description = {string:desc},
+					c_type = {string:type},
+					type_values = {string:type_values},
+					is_sortable = {string:is_sortable},
+					options = {string:options}
+				WHERE id_element = {int:element}',
+				array(
+					'name' => $params['name'],
+					'desc' => $params['description'],
+					'type' => $params['selected'],
+					'type_values' => $params['type_values'],
+					'element' => $id,
+					'is_sortable' => $params['sortable'],
+					'options' => $additional,
+				)
+			);
+	}
+}
+
+/**
+ * For now it is a simple wrapper around the most used functions in $smcFunc
+ * I'll change things while I go the way I like them :P
+ */
+class collections_functions
+{
+	private $smcFunc;
+	private $method = 'replace';
+	private $table;
+	private $table_alias;
+	private $columns;
+	private $values;
+	private $keys;
+	private $disable_trans = false;
+	private $connection = null;
+	private $field = null;
+
+	private $selects;
+	private $joins;
+
+	public function __construct ()
+	{
+		global $smcFunc;
+		$this->smcFunc = $smcFunc;
+	}
+
+	public function db_insert ($method = 'replace', $table, $columns, $data, $keys, $disable_trans = false, $connection = null)
+	{
+		$this->smcFunc['db_insert'](
+			$method,
+			$table,
+			$columns,
+			$data,
+			$keys,
+			$disable_trans,
+			$connection
+		);
+		return $this->db_insert_id($table, null, $connection);
+	}
+	public function db_insert_id ($table, $field = null, $connection = null)
+	{
+		return $this->smcFunc['db_insert_id'](
+			$table,
+			$field,
+			$connection
+		);
+	}
+	public function db_query ($identifier, $db_string, $db_values, $connection = null)
+	{
+		return $this->smcFunc['db_query'](
+			$identifier,
+			$db_string,
+			$db_values,
+			$connection
+		);
+	}
+	public function db_fetch_assoc ($request)
+	{
+		return $this->smcFunc['db_fetch_assoc']($request);
+	}
+	public function db_fetch_row ($request, $free = true)
+	{
+		$row = $this->smcFunc['db_fetch_row']($request);
+		if ($free)
+			$this->db_free_result($request);
+
+		return $row;
+	}
+	public function db_free_result ($request)
+	{
+		$this->smcFunc['db_free_result']($request);
+	}
+	public function db_num_rows ($request)
+	{
+		return $this->smcFunc['db_num_rows']($request);
+	}
+
+	/**
+	 * A couple of new functions
+	 */
+	public function db_fetch_assoc_all ($request, $free = true, $id = null)
+	{
+		$rets = array();
+		// This is needed to speed up things and hopefully avoid inconsistencies
+		$row = $this->db_fetch_assoc($request)
+		if ($id !== null && isset($row[$id]))
+		{
+			$rets[$row[$id]] = $row;
+			while ($row = $this->db_fetch_assoc($request))
+				$rets[$row[$id]] = $row;
+		}
+		else
+		{
+			$rets[] = $row;
+			while ($row = $this->db_fetch_assoc($request))
+				$rets[] = $row;
+		}
+
+		if ($free)
+			$this->db_free_result($request);
+
+		return $rets;
+	}
+	public function db_query_assoc ($identifier, $db_string, $db_values, $connection = null)
+	{
+		return $this->db_fetch_assoc_all($this->db_query($identifier, $db_string, $db_values, $connection));
+	}
+	public function db_query_row ($identifier, $db_string, $db_values, $free = true, $connection = null)
+	{
+		return $this->db_fetch_row($this->db_query($identifier, $db_string, $db_values, $connection), $free);
+	}
+}
 ?>
