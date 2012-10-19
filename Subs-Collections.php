@@ -1943,27 +1943,28 @@ class collections_elements extends collections_functions
 
 	public function validate ()
 	{
+		// Reset
+		$this->params = array();
+
 		foreach ($this->valid_options as $key => $check)
 			if (isset($_POST[isset($check['post_name']) ? $check['post_name'] : $key]))
 			{
-				if (isset($check['require']) && isset($params[$check['require']]))
-					$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key], $params[$check['require']]);
+				if (isset($check['require']) && isset($this->params[$check['require']]))
+					$this->params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key], $this->params[$check['require']]);
 				elseif (!isset($check['require']))
-					$params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key]);
+					$this->params[$key] = $check['validate']($_POST[isset($check['post_name']) ? $check['post_name'] : $key]);
 				else
-					$params[$key] = $check['default'];
+					$this->params[$key] = $check['default'];
 			}
 			else
-				$params[$key] = $check['default'];
+				$this->params[$key] = $check['default'];
 
-		$errors['name'] = isset($_POST['name']) && empty($params['name']) || $smcFunc['strlen']($params['name']) > 255;
-		$errors['description'] = isset($_POST['description']) && empty($params['description']);
+		$this->errors['name'] = isset($_POST['name']) && empty($this->params['name']) || $smcFunc['strlen']($this->params['name']) > 255;
+		$this->errors['description'] = isset($_POST['description']) && empty($this->params['description']);
 	}
 
-	public function save ($id, $params)
+	public function save ($id)
 	{
-		global $smcFunc;
-
 		$other_options = array(
 			'bb_code' => 0,
 			'head_styles' => '',
@@ -1972,8 +1973,8 @@ class collections_elements extends collections_functions
 
 		$additional = array();
 		foreach ($other_options as $option => $default)
-			if (isset($params[$option]))
-				$additional[$option] = $params[$option];
+			if (isset($this->params[$option]))
+				$additional[$option] = $this->params[$option];
 			else
 				$additional[$option] = $default;
 
@@ -1991,10 +1992,22 @@ class collections_elements extends collections_functions
 			$this->db_insert('',
 				'{db_prefix}collections_elements',
 				array(
-					'name' => 'string-255', 'description' => 'string', 'position' => 'int', 'c_type' => 'string-10', 'type_values' => 'string', 'is_sortable' => 'int', 'options' => 'string'
+					'name' => 'string-255',
+					'description' => 'string',
+					'position' => 'int',
+					'c_type' => 'string-10',
+					'type_values' => 'string',
+					'is_sortable' => 'int',
+					'options' => 'string'
 				),
 				array(
-					$params['name'], $params['description'], $last_position, $params['selected'], $params['type_values'], $params['sortable'], $additional
+					$this->params['name'],
+					$this->params['description'],
+					$last_position,
+					$this->params['selected'],
+					$this->params['type_values'],
+					$this->params['sortable'],
+					$additional
 				),
 				array('id_element')
 			);
@@ -2011,12 +2024,12 @@ class collections_elements extends collections_functions
 					options = {string:options}
 				WHERE id_element = {int:element}',
 				array(
-					'name' => $params['name'],
-					'desc' => $params['description'],
-					'type' => $params['selected'],
-					'type_values' => $params['type_values'],
+					'name' => $this->params['name'],
+					'desc' => $this->params['description'],
+					'type' => $this->params['selected'],
+					'type_values' => $this->params['type_values'],
 					'element' => $id,
-					'is_sortable' => $params['sortable'],
+					'is_sortable' => $this->params['sortable'],
 					'options' => $additional,
 				)
 			);
@@ -2030,18 +2043,6 @@ class collections_elements extends collections_functions
 class collections_functions
 {
 	private $smcFunc;
-	private $method = 'replace';
-	private $table;
-	private $table_alias;
-	private $columns;
-	private $values;
-	private $keys;
-	private $disable_trans = false;
-	private $connection = null;
-	private $field = null;
-
-	private $selects;
-	private $joins;
 
 	public function __construct ()
 	{
