@@ -1757,6 +1757,7 @@ class collections_elements extends collections_functions
 		$this->errors = array();
 
 		foreach ($this->valid_options as $key => $check)
+		{
 			if (isset($_POST[isset($check['post_name']) ? $check['post_name'] : $key]))
 			{
 				if (isset($check['require']) && isset($this->params[$check['require']]))
@@ -1768,6 +1769,7 @@ class collections_elements extends collections_functions
 			}
 			else
 				$this->params[$key] = $check['default'];
+		}
 
 		$this->errors['name'] = isset($_POST['name']) && empty($this->params['name']) || $smcFunc['strlen']($this->params['name']) > 255;
 		$this->errors['description'] = isset($_POST['description']) && empty($this->params['description']);
