@@ -208,17 +208,17 @@ function setup_hooks ()
 					'type' => 'primary',
 					'columns' => array('id_entry'),
 				),
+				array(
+					'name' => 'list_pairs',
+					'type' => 'unique',
+					'columns' => array('id_list', 'id_element'),
+				),
 			)
 		);
 
 		$smcFunc['db_create_table'](
 			'{db_prefix}collections_collections',
 			array(
-				array(
-					'name' => 'id_collection',
-					'type' => 'int',
-					'auto' => true,
-				),
 				array(
 					'name' => 'glue',
 					'type' => 'int',
@@ -236,9 +236,9 @@ function setup_hooks ()
 			),
 			array(
 				array(
-					'name' => 'id_collection',
-					'type' => 'primary',
-					'columns' => array('id_collection'),
+					'name' => 'unique_entry',
+					'type' => 'unique',
+					'columns' => array('glue' 'id_entry'),
 				),
 			)
 		);
