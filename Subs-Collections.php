@@ -289,8 +289,8 @@ function collections_listElements ()
 			array(
 				'position' => 'bottom_of_list',
 				'value' => '
-					<input type="submit" name="go" value="' . $txt['delete_selected'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
-					<input type="submit" name="new" value="' . $txt['collections_add_new'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
+					<input style="float:right" type="submit" name="new" value="' . $txt['collections_add_new'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
+					<input type="submit" name="go" value="' . $txt['delete_selected'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
 				'align' => 'right',
 			),
 		),
@@ -418,8 +418,8 @@ function collections_editElements ()
 			array(
 				'position' => 'bottom_of_list',
 				'value' => '
-					<input type="submit" name="delete_element" value="' . $txt['delete'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
-					<input type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />',
+					<input style="float:right" type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />
+					<input type="submit" name="delete_element" value="' . $txt['delete'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
 				'align' => 'right',
 			),
 		),
@@ -591,8 +591,8 @@ function collections_listCollections ()
 			array(
 				'position' => 'bottom_of_list',
 				'value' => '
-					<input type="submit" name="go" value="' . $txt['delete_selected'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
-					<input type="submit" name="new" value="' . $txt['collections_add_new'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
+					<input style="float:right" type="submit" name="new" value="' . $txt['collections_add_new'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
+					<input type="submit" name="go" value="' . $txt['delete_selected'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
 				'align' => 'right',
 			),
 		),
@@ -672,8 +672,6 @@ function collections_populateCollection ()
 			$errors[] = collections_deleteItems($_POST['collection_delete'], $id_list);
 		if (!empty($_POST['collection_new']))
 			$errors[] = collections_insertNewItems($_POST['collection_new'], $id_list);
-		if (!empty($_POST['collection_edit']))
-			$errors[] = collections_updateItems($_POST['collection_edit']);
 
 		$errors = array_filter($errors, create_function('$data', 'return !empty($data);'));
 
@@ -776,8 +774,8 @@ function collections_populateCollection ()
 			array(
 				'position' => 'bottom_of_list',
 				'value' => '
+					<input style="float:right" type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />
 					<input type="submit" name="delete" value="' . $txt['delete_selected'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />
-					<input type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />
 					<script type="text/javascript"><!-- // --><![CDATA[
 						var last_node = document.getElementById(\'list_collections_populate_\' + collections_last_item);
 						toggleEvents(last_node, true);
@@ -831,8 +829,7 @@ function collections_createItemsMask ($data, $id_entry, $glue = false)
 {
 	global $txt;
 
-	$item_name = empty($data['id_collection']) ? 'collection_new[' . $id_entry . '][]' : 'collection_edit[' . $id_entry . '][' . $data['id_collection'] . ']';
-	$glue_input = !empty($glue) ? '<input type="hidden" name="glue_' . $item_name . '" value="' . $glue . '" />' : '';
+	$item_name = 'collection_new[' . $data['id_entry'] . '][' . (!empty($glue) ? $glue : '' ) . ']';
 
 	if (!empty($data['type']))
 	{
@@ -863,12 +860,16 @@ function collections_createItemsMask ($data, $id_entry, $glue = false)
 	if (empty($return))
 		$return = '<input type="text" name="' . $item_name . '" value="' . (isset($data['value']) ? $data['value'] : '') . '" class="input_text" />';
 
-	return $return . $glue_input;
+	return $return;
 }
 
 function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $is_sortable = false)
 {
 	global $smcFunc, $context;
+
+	$entries_ids = array();
+	foreach ($params as $key => $param)
+		$entries_ids[$param['id_element']] = $key;
 
 	$ret = $return = array();
 	if (!empty($sort))
@@ -887,7 +888,7 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $i
 		$ret[$par['id_element']] = $par;
 
 	$request = $smcFunc['db_query']('', '
-		SELECT co.id_collection, co.glue, co.id_entry, co.value,
+		SELECT co.glue, co.id_entry, co.value,
 			en.id_element, el.options,
 			el.c_type as type, el.is_sortable
 		FROM {db_prefix}collections_collections as co
@@ -900,15 +901,19 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $i
 	);
 
 	while ($row = $smcFunc['db_fetch_assoc']($request))
-	{
 		$tmp[$row['glue']][$row['id_element']] = array_merge($ret[$row['id_element']], $row);
-	}
+
 	$smcFunc['db_free_result']($request);
 
 	$counter = 1;
+	$entries_total = count($entries_ids);
 	if (!empty($tmp))
 		foreach ($tmp as $key => $val)
 		{
+			if (count($val) != $entries_total)
+				foreach ($entries_ids as $id_elem => $param_key)
+					if (!isset($val[$id_elem]))
+						$val[$id_elem] = array_merge(array('value' => ($params[$param_key]['type'] == 'increment' ? $counter : '')), $params[$param_key]);
 			$val['increment'] = $counter++;
 			if ($is_sortable)
 				$val['sort'] = $val[$sort_id]['value'];
@@ -930,7 +935,6 @@ function list_getCollectionEntries ($start, $items, $sort, $params, $id_list, $i
 
 		$return[] = $ret;
 	}
-
 	return $return;
 }
 
@@ -941,44 +945,8 @@ function collections_insertNewItems ($items, $id_list)
 	if (empty($items))
 		return;
 
-	$request = $smcFunc['db_query']('', '
-		SELECT MAX(co.glue)
-		FROM {db_prefix}collections_collections as co
-		LEFT JOIN {db_prefix}collections_entries as en ON (co.id_entry = en.id_entry)
-		WHERE en.id_list = {int:current_list}',
-		array(
-			'current_list' => $id_list
-		)
-	);
-	list($start_glue) = $smcFunc['db_fetch_row']($request);
-	$smcFunc['db_free_result']($request);
-	$start_glue++;
-
-	// This insane piece of code is necessary to cleanup the input and find empty new items.
-	// I wonder if there is a better way to do it...
-	foreach ($items as $key => $values)
-	{
-		foreach ($values as $k => $v)
-		{
-			if (isset($total[$k]))
-				$total[$k]++;
-			else
-				$total[$k] = 1;
-			if (empty($v))
-				if (isset($count[$k]))
-					$count[$k]++;
-				else
-					$count[$k] = 1;
-		}
-	}
-	$max = max($total);
-	if (isset($count))
-		foreach ($count as $k => $v)
-		{
-			if ($v == $max)
-				foreach ($items as $key => $values)
-					unset($items[$key][$k]);
-		}
+	$entries_count = count($items);
+	$entries_ids = array_keys($items);
 
 	// Validation is the key to success!
 	$request = $smcFunc['db_query']('', '
@@ -992,86 +960,76 @@ function collections_insertNewItems ($items, $id_list)
 	);
 	$validation_data = array();
 	while ($row = $smcFunc['db_fetch_assoc']($request))
-		$validation_data[$row['id_element']] = $row;
+		$validation_data[$row['id_entry']] = $row;
 	$smcFunc['db_free_result']($request);
 
 	// Let's prepare things to be stored into the database
 	$inserts = array();
-	foreach ($items as $key => $values)
+	$deletes = array();
+	$counts = array();
+
+	foreach ($items as $entry_id => $entries)
 	{
-		$possible_glue = isset($_POST['glue_collection_new'][$key]) ? (int) $_POST['glue_collection_new'][$key] : 0;
-		$glue = !empty($possible_glue) ? $possible_glue : $start_glue;
-		foreach ($values as $val)
-			if (collections_isValidEntry($val, $validation_data[$key]['type'], $validation_data[$key]['type_values']) && !empty($val))
-				$inserts[] = array($validation_data[$key]['id_entry'], $glue++, $val);
+		// This comes from the outside, we don't trust those things
+		$entry_id = (int) $entry_id;
+		if (empty($entry_id))
+			continue;
+
+		foreach ($entries as $possible_glue => $value)
+		{
+			// It must be a number, if not let's just skip it
+			$glue = (int) $possible_glue;
+
+			if (collections_isValidEntry($value, $validation_data[$entry_id]['type'], $validation_data[$entry_id]['type_values']))
+			{
+				if (empty($value))
+				{
+					if (isset($counts[$glue]))
+						$counts[$glue]++;
+					else
+						$counts[$glue] = 1;
+				}
+				$inserts[] = array($entry_id, $glue, $value);
+			}
+			else
+				$deletes[$glue][] = $entry_id;
+		}
 	}
 
-	if (empty($inserts))
-		return;
+	// Something may be completely empty, then it goes to deletes
+	if (!empty($counts))
+	{
+		foreach ($counts as $glue => $count)
+			if ($count == $entries_count)
+			{
+				foreach ($entries_ids as $ids)
+					$deletes[$glue][] = $ids;
+			}
+	}
 
-	$smcFunc['db_insert']('',
-		'{db_prefix}collections_collections',
-		array(
-			'id_entry' => 'int', 'glue' => 'int', 'value' => 'string'
-		),
-		$inserts,
-		array(
-			'id_collection'
-		)
-	);
-}
+	if (!empty($inserts))
+		$smcFunc['db_insert']('replace',
+			'{db_prefix}collections_collections',
+			array(
+				'id_entry' => 'int', 'glue' => 'int', 'value' => 'string'
+			),
+			$inserts,
+			array(
+				'id_entry', 'glue'
+			)
+		);
 
-function collections_updateItems ($items)
-{
-	global $smcFunc;
-
-	if (empty($items))
-		return;
-
-	$normal = array();
-	$changed = array();
-	$errors = array();
-
-	// Normalization
-	foreach ($items as $key => $collections)
-		foreach ($collections as $k => $v)
-			$normal[$k] = $v;
-
-	// First let's update only what has changed
-	$request = $smcFunc['db_query']('', '
-		SELECT co.id_collection, co.value,
-			el.c_type as type, el.type_values
-		FROM {db_prefix}collections_collections as co
-		LEFT JOIN {db_prefix}collections_entries as en ON (co.id_entry = en.id_entry)
-		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
-		WHERE co.id_collection IN ({array_int:id_affected})',
-		array(
-			'id_affected' => array_keys($normal),
-		)
-	);
-	while ($row = $smcFunc['db_fetch_assoc']($request))
-		if ($normal[$row['id_collection']] != $row['value'])
-		{
-			$changed[$row['id_collection']] = $row;
-			$changed[$row['id_collection']]['new_value'] = $normal[$row['id_collection']];
-		}
-	$smcFunc['db_free_result']($request);
-
-	// Hopefully we are lucky enough it will not timeout..and we have also to validate the fields!
-	foreach ($changed as $key => $val)
-		if (collections_isValidEntry($val['new_value'], $val['type'], $val['type_values']))
+	if (!empty($deletes))
+		foreach ($deletes as $glue => $ids)
 			$smcFunc['db_query']('', '
-				UPDATE {db_prefix}collections_collections
-				SET
-					value = {string:new_value}
-				WHERE id_collection = {int:collection}',
+				DELETE FROM {db_prefix}collections_collections
+				WHERE id_entry IN ({array_int:current_entries})
+					AND glue = {int:glue}',
 				array(
-					'collection' => $key,
-					'new_value' => $val['new_value'],
+					'glue' => $glue,
+					'current_entries' => array_unique($ids),
 				)
 			);
-		else
-			$errors[] = $key;
 }
 
 function collections_isValidEntry (&$value, $type, $validation)
@@ -1456,16 +1414,14 @@ function collections_show_collection ()
 
 	// This will grab all the info about the columns
 	$request = $smcFunc['db_query']('', '
-		SELECT en.id_list, en.id_entry, en.id_element,
+		SELECT en.id_list, en.id_entry, en.id_element, en.value as enabled,
 			el.name, el.description, el.c_type as type, el.type_values, el.is_sortable, el.options
 		FROM {db_prefix}collections_entries as en
 		LEFT JOIN {db_prefix}collections_elements as el ON (en.id_element = el.id_element)
 		WHERE en.id_list IN ({array_int:current_list})
-			AND en.value = {int:enabled}
 		ORDER BY el.position',
 		array(
 			'current_list' => empty($lists_info) ? array(0) : array_keys($lists_info),
-			'enabled' => 1,
 		)
 	);
 
@@ -1476,6 +1432,9 @@ function collections_show_collection ()
 	$is_sortable = array();
 	while ($row = $smcFunc['db_fetch_assoc']($request))
 	{
+		if (empty($row['enabled']))
+			continue;
+
 		$header = empty($row['description']) ? $row['name'] : '<span title="' . $smcFunc['htmlspecialchars']($row['description']) . '">' . $row['name'] . '</span>';
 
 		$opt = @unserialize($row['options']);
@@ -1526,6 +1485,8 @@ function collections_show_collection ()
 
 		if (!empty($row['is_sortable']))
 		{
+			if (!isset($default_sort_col))
+				$default_sort_col = 'a' . $row['id_element'];
 			$is_sortable[$row['id_list']] = true;
 			$current_columns[$row['id_list']]['a' . $row['id_element']]['sort'] = array(
 				'default' => $row['id_element'],
@@ -1579,7 +1540,7 @@ function collections_show_collection ()
 
 		if ($params['is_sortable'])
 			$listOptions += array(
-				'default_sort_col' => 'a1',
+				'default_sort_col' => $default_sort_col,
 				'default_sort_dir' => 'asc',
 			);
 
