@@ -257,20 +257,6 @@ function collections_listElements ()
 	$context['sub_template'] = 'show_list';
 }
 
-function collections_createElementMask ($data)
-{
-	global $context;
-
-	return $context['elements']->createMask($data);
-}
-
-function collections_loadElementsMask ($start = null, $items = null, $sort = null)
-{
-	global $context;
-
-	return $context['elements']->loadMask();
-}
-
 function collections_editElements ($current_elem = 0)
 {
 	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
@@ -355,6 +341,20 @@ function collections_editElements ($current_elem = 0)
 
 	$context['default_list'] = 'collections_admin_list';
 	$context['sub_template'] = 'show_list';
+}
+
+function collections_createElementMask ($data)
+{
+	global $context;
+
+	return $context['elements']->createMask($data);
+}
+
+function collections_loadElementsMask ($start = null, $items = null, $sort = null)
+{
+	global $context;
+
+	return $context['elements']->loadMask();
 }
 
 function collections_listCollections ()
