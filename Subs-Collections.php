@@ -133,31 +133,24 @@ function collections_moveCollection ()
 	redirectexit('action=admin;area=collections');
 }
 
-function collections_moveElement ()
-{
-	global $smcFunc, $context;
-
-	$current_element = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
-	$current_move = isset($_REQUEST['move']) ? $_REQUEST['move'] : 0;
-
-	checkSession('get');
-
-	if ($context['elements']->move($current_element, $current_move))
-		redirectexit('action=admin;area=collections;sa=elements');
-	else
-		return collections_listElements();
-}
-
 function collections_listElements ()
 {
 	global $context, $sourcedir, $scripturl, $txt, $settings;
 
 	$context['elements'] = new collections_elements();
+	$current_element = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 
 	if (isset($_GET['editel']))
-		return collections_editElements();
+		return collections_editElements($current_element);
 	if (isset($_GET['moveel']))
-		collections_moveElement();
+	{
+		$current_move = isset($_REQUEST['move']) ? $_REQUEST['move'] : 0;
+
+		checkSession('get');
+
+		if ($context['elements']->move($current_element, $current_move))
+			redirectexit('action=admin;area=collections;sa=elements');
+	}
 	if (isset($_POST['element_delete']))
 			$context['elements']->delete($_POST['element_delete']);
 
@@ -280,14 +273,12 @@ function collections_loadElementsMask ($start = null, $items = null, $sort = nul
 	return $context['elements']->loadMask();
 }
 
-function collections_editElements ()
+function collections_editElements ($current_elem = 0)
 {
 	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
 
 	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
-
-	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 
 	if (!empty($current_elem) && isset($_POST['delete_element']))
 	{
