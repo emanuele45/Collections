@@ -151,8 +151,6 @@ function collections_listElements ()
 		if ($context['elements']->move($current_element, $current_move))
 			redirectexit('action=admin;area=collections;sa=elements');
 	}
-	if (isset($_POST['element_delete']))
-			$context['elements']->delete($_POST['element_delete']);
 
 	// We're going to want this for making our list.
 	require_once($sourcedir . '/Subs-List.php');
