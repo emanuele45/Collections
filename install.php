@@ -238,7 +238,7 @@ function setup_hooks ()
 				array(
 					'name' => 'unique_entry',
 					'type' => 'unique',
-					'columns' => array('glue' 'id_entry'),
+					'columns' => array('glue', 'id_entry'),
 				),
 			)
 		);
