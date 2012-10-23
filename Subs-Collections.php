@@ -1537,7 +1537,6 @@ class collections_elements extends collections_functions
 				$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
 				return in_array($data, $allowed_types) ? $data : \'text\';'
 			),
-			'post_name' => 'type',
 			'default' => 'text',
 			'has_children' => array('type_values'),
 			'options' => 'onchange="toggleInput(this)"',
@@ -1551,7 +1550,7 @@ class collections_elements extends collections_functions
 		}
 		toggleInput(document.getElementById(\'selected\'));',
 		),
-		'sortable' => array(
+		'is_sortable' => array(
 			'type' => 'check',
 			'validate' => create_function('$data, $selected', '
 				$sortable_types = array(\'int\', \'text\', \'largetext\', \'select\', \'increment\');
@@ -1637,8 +1636,10 @@ class collections_elements extends collections_functions
 				$this->params[$key] = $check['default'];
 		}
 
-		$this->errors['name'] = isset($_POST['name']) && empty($this->params['name']) || $smcFunc['strlen']($this->params['name']) > 255;
-		$this->errors['description'] = isset($_POST['description']) && empty($this->params['description']);
+		if (isset($_POST['name']) && empty($this->params['name']) || $smcFunc['strlen']($this->params['name']) > 255)
+			$this->errors['name'] = true;
+		if (isset($_POST['description']) && empty($this->params['description']))
+			$this->errors['description'] = true;
 	}
 
 	public function getParams ($id)
@@ -1652,7 +1653,7 @@ class collections_elements extends collections_functions
 	public function loadParams ($id)
 	{
 		$rets = $this->db_query_assoc('', '
-			SELECT name, description, c_type, type_values, is_sortable, options
+			SELECT name, description, c_type as selected, type_values, is_sortable, options
 			FROM {db_prefix}collections_elements
 			WHERE id_element = {int:element}',
 			array(
@@ -1670,7 +1671,36 @@ class collections_elements extends collections_functions
 				$this->params[$key] = $value;
 	}
 
-	public function save ($id)
+	private function elementExists ($id)
+	{
+		if (empty($id))
+			return false;
+
+		$request = $this->db_query('', '
+			SELECT name
+			FROM {db_prefix}collections_elements
+			WHERE id_element = {int:element}',
+			array(
+				'element' => $id
+			)
+		);
+		$rows = $this->db_num_rows($request);
+		$this->db_free_result($request);
+
+		return !empty($rows);
+	}
+
+	private function getNextPosition ()
+	{
+		list($last_position) = $this->db_query_row('', '
+			SELECT MAX(position)
+			FROM {db_prefix}collections_elements',
+			array()
+		);
+		return $last_position + 1;
+	}
+
+	public function save ($id = 0)
 	{
 		$other_options = array(
 			'bb_code' => 0,
@@ -1687,15 +1717,11 @@ class collections_elements extends collections_functions
 
 		$additional = serialize($additional);
 
+		if (!$this->elementExists($id))
+			$id = 0;
+
 		if (empty($id))
 		{
-			list($last_position) = $this->db_query_row('', '
-				SELECT MAX(position)
-				FROM {db_prefix}collections_elements',
-				array()
-			);
-			$last_position++;
-
 			$this->db_insert('',
 				'{db_prefix}collections_elements',
 				array(
@@ -1710,10 +1736,10 @@ class collections_elements extends collections_functions
 				array(
 					$this->params['name'],
 					$this->params['description'],
-					$last_position,
+					$this->getNextPosition(),
 					$this->params['selected'],
 					$this->params['type_values'],
-					$this->params['sortable'],
+					$this->params['is_sortable'],
 					$additional
 				),
 				array('id_element')
@@ -1736,7 +1762,7 @@ class collections_elements extends collections_functions
 					'type' => $this->params['selected'],
 					'type_values' => $this->params['type_values'],
 					'element' => $id,
-					'is_sortable' => $this->params['sortable'],
+					'is_sortable' => $this->params['is_sortable'],
 					'options' => $additional,
 				)
 			);
@@ -1841,7 +1867,7 @@ class collections_elements extends collections_functions
 			'value' => isset($txt['collections_field_' . $key]) ? $txt['collections_field_' . $key] : '',
 			'type' => $this->valid_options[$key]['type'],
 			'input' => isset($this->params[$key]) ? $this->params[$key] : '',
-			'error' => !empty($errors[$key]),
+			'error' => !empty($this->errors[$key]),
 			'options' => !empty($this->valid_options[$key]['options']) ? $this->valid_options[$key]['options'] : '',
 			'script' => !empty($this->valid_options[$key]['script']) ? '
 	<script type="text/javascript"><!-- // --><![CDATA[' . $this->valid_options[$key]['script'] . '
