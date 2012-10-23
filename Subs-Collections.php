@@ -135,68 +135,31 @@ function collections_moveCollection ()
 
 function collections_moveElement ()
 {
-	global $smcFunc;
-
-	$allowedMoves = array('up', 'down');
+	global $smcFunc, $context;
 
 	$current_element = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 	$current_move = isset($_REQUEST['move']) ? $_REQUEST['move'] : 0;
 
-	if (empty($current_move) || !in_array($current_move, $allowedMoves) || empty($current_element))
-		return collections_listElements();
-
 	checkSession('get');
 
-	$request = $smcFunc['db_query']('', '
-		SELECT el1.position as current_position, IFNULL(el2.position, -1) as next_position, el2.id_element
-		FROM {db_prefix}collections_elements as el1
-		LEFT JOIN {db_prefix}collections_elements as el2 ON (el2.position = (el1.position + {int:movement}))
-		WHERE el1.id_element = {int:current_element}',
-		array(
-			'current_element' => $current_element,
-			'movement' => $current_move == 'down' ? 1 : -1,
-		)
-	);
-	list($current_position, $next_position, $swap_element) = $smcFunc['db_fetch_row']($request);
-	$smcFunc['db_free_result']($request);
-
-	if ($next_position == -1)
+	if ($context['elements']->move($current_element, $current_move))
+		redirectexit('action=admin;area=collections;sa=elements');
+	else
 		return collections_listElements();
-
-	$smcFunc['db_query']('', '
-		UPDATE {db_prefix}collections_elements
-		SET
-			position = {int:next_position}
-		WHERE id_element = {int:current_element}',
-		array(
-			'next_position' => $next_position,
-			'current_element' => $current_element,
-		)
-	);
-	$smcFunc['db_query']('', '
-		UPDATE {db_prefix}collections_elements
-		SET
-			position = {int:current_position}
-		WHERE id_element = {int:swap_element}',
-		array(
-			'current_position' => $current_position,
-			'swap_element' => $swap_element,
-		)
-	);
-
-	redirectexit('action=admin;area=collections;sa=elements');
 }
 
 function collections_listElements ()
 {
 	global $context, $sourcedir, $scripturl, $txt, $settings;
 
+	$context['elements'] = new collections_elements();
+
 	if (isset($_GET['editel']))
 		return collections_editElements();
 	if (isset($_GET['moveel']))
 		collections_moveElement();
 	if (isset($_POST['element_delete']))
-		collections_deleteElement($_POST['element_delete']);
+			$context['elements']->delete($_POST['element_delete']);
 
 	// We're going to want this for making our list.
 	require_once($sourcedir . '/Subs-List.php');
@@ -305,32 +268,9 @@ function collections_listElements ()
 
 function collections_createElementMask ($data)
 {
-	global $txt;
+	global $context;
 
-	if ($data['type'] == 'select')
-	{
-		$return = '
-	<select id="' . $data['id'] . '" ' . $data['options'] . ' name="' . $data['id'] . '" class="' . (!empty($data['error']) ? ' error' : '') . '">';
-
-		foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
-			$return .= '
-		<option value="' . $type . '"' . ($data['input'] == $type ? ' selected="selected"' : '') . '>' . $txt['collections_' . $type] . '</option>';
-
-		$return .= '
-	</select>';
-	}
-	elseif ($data['type'] == 'check')
-		$return = '
-			<input id="' . $data['id'] . '" type="checkbox" ' . $data['options'] . ' name="' . $data['id'] . '"' . ($data['input'] ? ' checked="checked"' : '') . ' class="input_check' . (!empty($data['error']) ? ' error' : '') . '" />';
-	else
-		$return = '
-			<input id="' . $data['id'] . '" type="text" ' . $data['options'] . ' name="' . $data['id'] . '" value="' . $data['input'] . '" class="input_text' . (!empty($data['error']) ? ' error' : '') . '" />';
-
-	if (!empty($data['children']))
-		foreach ($data['children'] as $child)
-			$return .= collections_createElementMask($child);
-
-	return $return . $data['script'];
+	return $context['elements']->createMask($data);
 }
 
 function collections_loadElementsMask ($start = null, $items = null, $sort = null)
@@ -347,9 +287,7 @@ function collections_editElements ()
 	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
 
-	$context['elements'] = new collections_elements();
-
-	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : '';
+	$current_elem = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 
 	if (!empty($current_elem) && isset($_POST['delete_element']))
 	{
@@ -402,9 +340,7 @@ function collections_editElements ()
 					'value' => $txt['collections_field_value'],
 				),
 				'data' => array(
-					'function' => create_function('$data', '
-						return collections_createElementMask($data);
-					'),
+					'function' => 'collections_createElementMask',
 				),
 			),
 		),
@@ -430,37 +366,6 @@ function collections_editElements ()
 
 	$context['default_list'] = 'collections_admin_list';
 	$context['sub_template'] = 'show_list';
-}
-
-// @todo: a lot of things...
-function collections_deleteElement ($elements)
-{
-	global $smcFunc;
-
-	$elements = is_array($elements) ? $elements : array($elements);
-
-	foreach ($elements as &$element)
-		$element = (int) $element;
-
-	$elements = array_unique($elements);
-
-	if (empty($elements))
-		return;
-
-	$smcFunc['db_query']('', '
-		DELETE FROM {db_prefix}collections_elements
-		WHERE id_element IN ({array_int:element})',
-		array(
-			'element' => $elements
-		)
-	);
-	$smcFunc['db_query']('', '
-		DELETE FROM {db_prefix}collections_entries
-		WHERE id_element IN ({array_int:element})',
-		array(
-			'element' => $elements
-		)
-	);
 }
 
 function collections_listCollections ()
@@ -1837,6 +1742,56 @@ class collections_elements extends collections_functions
 			);
 	}
 
+	public function move ($element, $dir = 'down')
+	{
+		$allowedMoves = array('up', 'down');
+
+		if (empty($element))
+			return false;
+		if (!in_array($dir, $allowedMoves))
+			return false;
+
+		list($current_position, $next_position, $swap_element) = $this->db_query_row('', '
+			SELECT
+				el1.position as current_position,
+				IFNULL(el2.position, -1) as next_position,
+				el2.id_element
+			FROM {db_prefix}collections_elements as el1
+			LEFT JOIN {db_prefix}collections_elements as el2 ON (el2.position = (el1.position + {int:movement}))
+			WHERE el1.id_element = {int:current_element}',
+			array(
+				'current_element' => $element,
+				'movement' => $dir == 'down' ? 1 : -1,
+			)
+		);
+
+		if ($next_position == -1)
+			return false;
+
+		$this->db_query('', '
+			UPDATE {db_prefix}collections_elements
+			SET
+				position = {int:next_position}
+			WHERE id_element = {int:current_element}',
+			array(
+				'next_position' => $next_position,
+				'current_element' => $element,
+			)
+		);
+		$this->db_query('', '
+			UPDATE {db_prefix}collections_elements
+			SET
+				position = {int:current_position}
+			WHERE id_element = {int:swap_element}',
+			array(
+				'current_position' => $current_position,
+				'swap_element' => $swap_element,
+			)
+		);
+
+		return true;
+	}
+
 	public function delete ($ids = array())
 	{
 		$ids = is_array($ids) ? $ids : array($ids);
@@ -1897,6 +1852,36 @@ class collections_elements extends collections_functions
 				$option['children'][$child_id] = $this->loadRecursive($child_id);
 
 		return $option;
+	}
+
+	public function createMask ($data)
+	{
+	global $txt;
+
+	if ($data['type'] == 'select')
+	{
+		$return = '
+	<select id="' . $data['id'] . '" ' . $data['options'] . ' name="' . $data['id'] . '" class="' . (!empty($data['error']) ? ' error' : '') . '">';
+
+		foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
+			$return .= '
+		<option value="' . $type . '"' . ($data['input'] == $type ? ' selected="selected"' : '') . '>' . $txt['collections_' . $type] . '</option>';
+
+		$return .= '
+	</select>';
+	}
+	elseif ($data['type'] == 'check')
+		$return = '
+			<input id="' . $data['id'] . '" type="checkbox" ' . $data['options'] . ' name="' . $data['id'] . '"' . ($data['input'] ? ' checked="checked"' : '') . ' class="input_check' . (!empty($data['error']) ? ' error' : '') . '" />';
+	else
+		$return = '
+			<input id="' . $data['id'] . '" type="text" ' . $data['options'] . ' name="' . $data['id'] . '" value="' . $data['input'] . '" class="input_text' . (!empty($data['error']) ? ' error' : '') . '" />';
+
+	if (!empty($data['children']))
+		foreach ($data['children'] as $child)
+			$return .= $this->createMask($child);
+
+	return $return . $data['script'];
 	}
 }
 
