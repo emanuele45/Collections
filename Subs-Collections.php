@@ -1902,11 +1902,13 @@ class collections_elements extends collections_functions
 class collections_functions
 {
 	private $_smcFunc;
+	private $_sourcedir;
 
 	public function __construct ()
 	{
-		global $smcFunc;
+		global $smcFunc, $sourcedir;
 		$this->_smcFunc = $smcFunc;
+		$this->_sourcedir = $sourcedir;
 	}
 
 	public function db_insert ($method = 'replace', $table, $columns, $data, $keys, $disable_trans = false, $connection = null)
@@ -1993,6 +1995,12 @@ class collections_functions
 	public function db_query_row ($identifier, $db_string, $db_values, $free = true, $connection = null)
 	{
 		return $this->db_fetch_row($this->db_query($identifier, $db_string, $db_values, $connection), $free);
+	}
+
+	public function loadFile ($name)
+	{
+		if (file_exists($this->_sourcedir . '/' . $name))
+			require_once($this->_sourcedir . '/' . $name);
 	}
 }
 ?>
