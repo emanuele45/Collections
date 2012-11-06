@@ -1870,32 +1870,32 @@ class collections_elements extends collections_functions
 
 	public function createMask ($data)
 	{
-	global $txt;
+		global $txt;
 
-	if ($data['type'] == 'select')
-	{
-		$return = '
+		if ($data['type'] == 'select')
+		{
+			$return = '
 	<select id="' . $data['id'] . '" ' . $data['options'] . ' name="' . $data['id'] . '" class="' . (!empty($data['error']) ? ' error' : '') . '">';
 
-		foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
-			$return .= '
+			foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
+				$return .= '
 		<option value="' . $type . '"' . ($data['input'] == $type ? ' selected="selected"' : '') . '>' . $txt['collections_' . $type] . '</option>';
 
-		$return .= '
+			$return .= '
 	</select>';
-	}
-	elseif ($data['type'] == 'check')
-		$return = '
+		}
+		elseif ($data['type'] == 'check')
+			$return = '
 			<input id="' . $data['id'] . '" type="checkbox" ' . $data['options'] . ' name="' . $data['id'] . '"' . ($data['input'] ? ' checked="checked"' : '') . ' class="input_check' . (!empty($data['error']) ? ' error' : '') . '" />';
-	else
-		$return = '
+		else
+			$return = '
 			<input id="' . $data['id'] . '" type="text" ' . $data['options'] . ' name="' . $data['id'] . '" value="' . $data['input'] . '" class="input_text' . (!empty($data['error']) ? ' error' : '') . '" />';
 
-	if (!empty($data['children']))
-		foreach ($data['children'] as $child)
-			$return .= $this->createMask($child);
+		if (!empty($data['children']))
+			foreach ($data['children'] as $child)
+				$return .= $this->createMask($child);
 
-	return $return . $data['script'];
+		return $return . $data['script'];
 	}
 }
 
