@@ -1624,6 +1624,8 @@ class collections_elements extends collections_functions
 			$this->errors['name'] = true;
 		if (isset($_POST['description']) && empty($this->params['description']))
 			$this->errors['description'] = true;
+
+		return $this;
 	}
 
 	public function getParams ($id)
@@ -1653,6 +1655,8 @@ class collections_elements extends collections_functions
 		if (!empty($opt))
 			foreach ($opt as $key => $value)
 				$this->params[$key] = $value;
+
+		return $this;
 	}
 
 	private function elementExists ($id)
@@ -2001,6 +2005,7 @@ class collections_functions
 	{
 		if (file_exists($this->_sourcedir . '/' . $name))
 			require_once($this->_sourcedir . '/' . $name);
+		return $this;
 	}
 }
 ?>
