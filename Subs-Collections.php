@@ -283,8 +283,7 @@ function collections_editElements ($current_elem = 0)
 		redirectexit('action=admin;area=collections;sa=elements');
 	}
 
-	$context['elements']->loadParams($current_elem);
-	$context['elements']->showForm($current_elem);
+	$context['elements']->loadParams($current_elem)->showForm($current_elem);
 }
 
 function collections_listCollections ()
