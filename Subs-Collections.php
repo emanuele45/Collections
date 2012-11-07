@@ -141,7 +141,36 @@ function collections_listElements ()
 	$current_element = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 
 	if (isset($_GET['editel']))
-		return collections_editElements($current_element);
+	{
+		global $context;
+
+		loadTemplate('Collections');
+		loadLanguage('Collections/Collections');
+
+		if (!empty($current_element) && isset($_POST['delete_element']))
+		{
+			checkSession();
+			$context['elements']->delete($current_element);
+			redirectexit('action=admin;area=collections;sa=elements');
+		}
+		elseif (isset($_POST['element_delete']))
+		{
+			checkSession();
+			$context['elements']->delete($_POST['element_delete']);
+			redirectexit('action=admin;area=collections;sa=elements');
+		}
+
+		if (isset($_POST['save']) && !$context['elements']->hasErrors())
+		{
+			$context['elements']->save($current_element);
+			redirectexit('action=admin;area=collections;sa=elements');
+		}
+
+		$context['elements']->loadParams($current_element)->showForm($current_element);
+
+		return;
+	}
+
 	if (isset($_GET['moveel']))
 	{
 		$current_move = isset($_REQUEST['move']) ? $_REQUEST['move'] : 0;
@@ -255,35 +284,6 @@ function collections_listElements ()
 
 	$context['default_list'] = 'collections_admin_list_elements';
 	$context['sub_template'] = 'show_list';
-}
-
-function collections_editElements ($current_elem = 0)
-{
-	global $context, $smcFunc, $txt, $sourcedir, $scripturl;
-
-	loadTemplate('Collections');
-	loadLanguage('Collections/Collections');
-
-	if (!empty($current_elem) && isset($_POST['delete_element']))
-	{
-		checkSession();
-		$context['elements']->delete($current_elem);
-		redirectexit('action=admin;area=collections;sa=elements');
-	}
-	elseif (isset($_POST['element_delete']))
-	{
-		checkSession();
-		$context['elements']->delete($_POST['element_delete']);
-		redirectexit('action=admin;area=collections;sa=elements');
-	}
-
-	if (isset($_POST['save']) && !$context['elements']->hasErrors())
-	{
-		$context['elements']->save($current_elem);
-		redirectexit('action=admin;area=collections;sa=elements');
-	}
-
-	$context['elements']->loadParams($current_elem)->showForm($current_elem);
 }
 
 function collections_listCollections ()
@@ -1845,10 +1845,7 @@ class collections_elements extends collections_functions
 			'title' => $txt['collections_edit_element'],
 			'width' => '100%',
 			'get_items' => array(
-				'function' => create_function('$start = null, $items = null, $sort = null', '
-					global $context;
-
-					return $context[\'elements\']->loadMask();'),
+				'function' => array($this, 'loadMask'),
 			),
 			'columns' => array(
 				'name' => array(
@@ -1871,10 +1868,7 @@ class collections_elements extends collections_functions
 						'value' => $txt['collections_field_value'],
 					),
 					'data' => array(
-						'function' => create_function('$data', '
-							global $context;
-
-							return $context[\'elements\']->createMask($data);'),
+						'function' => array($this, 'createMask'),
 					),
 				),
 			),

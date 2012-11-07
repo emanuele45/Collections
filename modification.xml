@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<modification xmlns="http://www.simplemachines.org/xml/modification" xmlns:smf="http://www.simplemachines.org/">
+	<license><![CDATA[
+/**
+ * Collections
+ *
+ * @package Collections
+ * @author emanuele
+ * @copyright 2012 emanuele
+ * @license BSD
+ *
+ * @version 0.1.0
+ */
+	]]></license>
+
+	<id>emanuele:collections</id>
+	<version>0.1.0</version>
+
+	<file name="$sourcedir/Subs-List.php">
+		<operation>
+			<search position="replace"><![CDATA[$cur_data['value'] = $column['data']['function']($list_item);]]></search>
+			<add><![CDATA[$cur_data['value'] = call_user_func_array($column['data']['function'], array($list_item));,]]></add>
+		</operation>
+	</file>
+
+</modification>
