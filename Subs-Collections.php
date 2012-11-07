@@ -284,7 +284,7 @@ function collections_editElements ($current_elem = 0)
 	}
 
 	$context['elements']->loadParams($current_elem);
-	$context['elements']->loadFile('Subs-List.php')->showForm($current_elem);
+	$context['elements']->showForm($current_elem);
 }
 
 function collections_listCollections ()
@@ -1840,6 +1840,7 @@ class collections_elements extends collections_functions
 	{
 		global $context, $txt, $scripturl;
 
+		$this->loadFile('Subs-List.php');
 		$listOptions = array(
 			'id' => 'collections_admin_list',
 			'title' => $txt['collections_edit_element'],
