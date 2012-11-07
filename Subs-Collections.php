@@ -1911,6 +1911,7 @@ class collections_functions
 {
 	private $_smcFunc;
 	private $_sourcedir;
+	private $loadedFiles = array();
 
 	public function __construct ()
 	{
@@ -2007,8 +2008,11 @@ class collections_functions
 
 	public function loadFile ($name)
 	{
-		if (file_exists($this->_sourcedir . '/' . $name))
+		if (!in_array($name, $this->loadedFiles) && file_exists($this->_sourcedir . '/' . $name))
+		{
+			$this->loadedFiles[] = $name;
 			require_once($this->_sourcedir . '/' . $name);
+		}
 		return $this;
 	}
 }
