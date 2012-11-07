@@ -1900,6 +1900,8 @@ class collections_elements extends collections_functions
 
 		$context['default_list'] = 'collections_admin_list';
 		$context['sub_template'] = 'show_list';
+
+		return $this;
 	}
 }
 
