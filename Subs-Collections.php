@@ -284,69 +284,7 @@ function collections_editElements ($current_elem = 0)
 	}
 
 	$context['elements']->loadParams($current_elem);
-
-	// We're going to want this for making our list.
-	require_once($sourcedir . '/Subs-List.php');
-	$listOptions = array(
-		'id' => 'collections_admin_list',
-		'title' => $txt['collections_edit_element'],
-		'width' => '100%',
-		'get_items' => array(
-			'function' => create_function('$start = null, $items = null, $sort = null', '
-				global $context;
-
-				return $context[\'elements\']->loadMask();'),
-		),
-		'columns' => array(
-			'name' => array(
-				'header' => array(
-					'value' => $txt['collections_field'],
-					'style' => 'width:25%;',
-				),
-				'data' => array(
-					'sprintf' => array(
-						'format' => '<span class="%2$s">%1$s</span>',
-						'params' => array(
-							'value' => false,
-							'error' => false,
-						),
-					),
-				),
-			),
-			'action' => array(
-				'header' => array(
-					'value' => $txt['collections_field_value'],
-				),
-				'data' => array(
-					'function' => create_function('$data', '
-						global $context;
-
-						return $context[\'elements\']->createMask($data);'),
-				),
-			),
-		),
-		'form' => array(
-			'href' => $scripturl . '?action=admin;area=collections;sa=elements;editel' . (empty($current_elem) ? '' : ';elem=' . $current_elem),
-			'hidden_fields' => array(
-				$context['session_var'] => $context['session_id'],
-			),
-		),
-		'additional_rows' => array(
-			array(
-				'position' => 'bottom_of_list',
-				'value' => '
-					<input style="float:right" type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />
-					<input type="submit" name="delete_element" value="' . $txt['delete'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
-				'align' => 'right',
-			),
-		),
-	);
-
-	// Create the request list.
-	createList($listOptions);
-
-	$context['default_list'] = 'collections_admin_list';
-	$context['sub_template'] = 'show_list';
+	$context['elements']->loadFile('Subs-List.php')->showForm($current_elem);
 }
 
 function collections_listCollections ()
@@ -1896,6 +1834,72 @@ class collections_elements extends collections_functions
 				$return .= $this->createMask($child);
 
 		return $return . $data['script'];
+	}
+
+	public function showForm ($current_elem = 0)
+	{
+		global $context, $txt, $scripturl;
+
+		$listOptions = array(
+			'id' => 'collections_admin_list',
+			'title' => $txt['collections_edit_element'],
+			'width' => '100%',
+			'get_items' => array(
+				'function' => create_function('$start = null, $items = null, $sort = null', '
+					global $context;
+
+					return $context[\'elements\']->loadMask();'),
+			),
+			'columns' => array(
+				'name' => array(
+					'header' => array(
+						'value' => $txt['collections_field'],
+						'style' => 'width:25%;',
+					),
+					'data' => array(
+						'sprintf' => array(
+							'format' => '<span class="%2$s">%1$s</span>',
+							'params' => array(
+								'value' => false,
+								'error' => false,
+							),
+						),
+					),
+				),
+				'action' => array(
+					'header' => array(
+						'value' => $txt['collections_field_value'],
+					),
+					'data' => array(
+						'function' => create_function('$data', '
+							global $context;
+
+							return $context[\'elements\']->createMask($data);'),
+					),
+				),
+			),
+			'form' => array(
+				'href' => $scripturl . '?action=admin;area=collections;sa=elements;editel' . (empty($current_elem) ? '' : ';elem=' . $current_elem),
+				'hidden_fields' => array(
+					$context['session_var'] => $context['session_id'],
+				),
+			),
+			'additional_rows' => array(
+				array(
+					'position' => 'bottom_of_list',
+					'value' => '
+						<input style="float:right" type="submit" name="save" value="' . $txt['save'] . '" class="button_submit" />
+						<input type="submit" name="delete_element" value="' . $txt['delete'] . '" onclick="var sel = document.getElementById(\'req_action\'); if (sel.value != 0 &amp;&amp; sel.value != \'reason\' &amp;&amp; !confirm(\'' . $txt['quickmod_confirm'] . '\')) return false;" class="button_submit" />',
+					'align' => 'right',
+				),
+			),
+		);
+
+		// Create the request list.
+		createList($listOptions);
+
+		$context['default_list'] = 'collections_admin_list';
+		$context['sub_template'] = 'show_list';
 	}
 }
 
