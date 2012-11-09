@@ -1425,16 +1425,23 @@ function collection_getElements ()
 	return $return;
 }
 
-class collections_elements extends collections_functions
+class collections_items extends collections_functions
+{
+	
+
+}
+
+class collections_elements
 {
 	protected $valid_options = array();
+	protected $func;
 
 	private $params = array();
 	private $errors = array();
 
 	public function __construct ($validate = true)
 	{
-		parent::__construct();
+		$this->func = new collections_functions();
 		$this->valid_options = array(
 		'name' => array(
 			'type' => 'text',
@@ -1575,7 +1582,7 @@ class collections_elements extends collections_functions
 
 	public function loadParams ($id)
 	{
-		$rets = $this->db_query_assoc('', '
+		$rets = $this->func->db_query_assoc('', '
 			SELECT name, description, c_type as selected, type_values, is_sortable, options
 			FROM {db_prefix}collections_elements
 			WHERE id_element = {int:element}',
@@ -1601,7 +1608,7 @@ class collections_elements extends collections_functions
 		if (empty($id))
 			return false;
 
-		$request = $this->db_query('', '
+		$request = $this->func->db_query('', '
 			SELECT name
 			FROM {db_prefix}collections_elements
 			WHERE id_element = {int:element}',
@@ -1609,15 +1616,15 @@ class collections_elements extends collections_functions
 				'element' => $id
 			)
 		);
-		$rows = $this->db_num_rows($request);
-		$this->db_free_result($request);
+		$rows = $this->func->db_num_rows($request);
+		$this->func->db_free_result($request);
 
 		return !empty($rows);
 	}
 
 	private function getNextPosition ()
 	{
-		list($last_position) = $this->db_query_row('', '
+		list($last_position) = $this->func->db_query_row('', '
 			SELECT MAX(position)
 			FROM {db_prefix}collections_elements',
 			array()
@@ -1647,7 +1654,7 @@ class collections_elements extends collections_functions
 
 		if (empty($id))
 		{
-			$this->db_insert('',
+			$this->func->db_insert('',
 				'{db_prefix}collections_elements',
 				array(
 					'name' => 'string-255',
@@ -1671,7 +1678,7 @@ class collections_elements extends collections_functions
 			);
 		}
 		else
-			$this->db_query('', '
+			$this->func->db_query('', '
 				UPDATE {db_prefix}collections_elements
 				SET
 					name = {string:name},
@@ -1702,7 +1709,7 @@ class collections_elements extends collections_functions
 		if (!in_array($dir, $allowedMoves))
 			return false;
 
-		list($current_position, $next_position, $swap_element) = $this->db_query_row('', '
+		list($current_position, $next_position, $swap_element) = $this->func->db_query_row('', '
 			SELECT
 				el1.position as current_position,
 				IFNULL(el2.position, -1) as next_position,
@@ -1719,7 +1726,7 @@ class collections_elements extends collections_functions
 		if ($next_position == -1)
 			return false;
 
-		$this->db_query('', '
+		$this->func->db_query('', '
 			UPDATE {db_prefix}collections_elements
 			SET
 				position = {int:next_position}
@@ -1729,7 +1736,7 @@ class collections_elements extends collections_functions
 				'current_element' => $element,
 			)
 		);
-		$this->db_query('', '
+		$this->func->db_query('', '
 			UPDATE {db_prefix}collections_elements
 			SET
 				position = {int:current_position}
@@ -1751,14 +1758,14 @@ class collections_elements extends collections_functions
 
 		if (!empty($ids))
 		{
-			$this->db_query('', '
+			$this->func->db_query('', '
 				DELETE FROM {db_prefix}collections_elements
 				WHERE id_element IN ({array_int:element})',
 				array(
 					'element' => $ids
 				)
 			);
-			$this->db_query('', '
+			$this->func->db_query('', '
 				DELETE FROM {db_prefix}collections_entries
 				WHERE id_element IN ({array_int:element})',
 				array(
@@ -1839,7 +1846,7 @@ class collections_elements extends collections_functions
 	{
 		global $context, $txt, $scripturl;
 
-		$this->loadFile('Subs-List.php');
+		$this->func->loadFile('Subs-List.php');
 		$listOptions = array(
 			'id' => 'collections_admin_list',
 			'title' => $txt['collections_edit_element'],
