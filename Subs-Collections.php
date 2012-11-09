@@ -137,7 +137,7 @@ function collections_listElements ()
 {
 	global $context, $sourcedir, $scripturl, $txt, $settings;
 
-	$context['elements'] = new collections_elements();
+	$elements = new collections_elements();
 	$current_element = isset($_GET['elem']) ? (int) $_GET['elem'] : 0;
 
 	if (isset($_GET['editel']))
@@ -150,23 +150,23 @@ function collections_listElements ()
 		if (!empty($current_element) && isset($_POST['delete_element']))
 		{
 			checkSession();
-			$context['elements']->delete($current_element);
+			$elements->delete($current_element);
 			redirectexit('action=admin;area=collections;sa=elements');
 		}
 		elseif (isset($_POST['element_delete']))
 		{
 			checkSession();
-			$context['elements']->delete($_POST['element_delete']);
+			$elements->delete($_POST['element_delete']);
 			redirectexit('action=admin;area=collections;sa=elements');
 		}
 
-		if (isset($_POST['save']) && !$context['elements']->hasErrors())
+		if (isset($_POST['save']) && !$elements->hasErrors())
 		{
-			$context['elements']->save($current_element);
+			$elements->save($current_element);
 			redirectexit('action=admin;area=collections;sa=elements');
 		}
 
-		$context['elements']->loadParams($current_element)->showForm($current_element);
+		$elements->loadParams($current_element)->showForm($current_element);
 
 		return;
 	}
@@ -177,7 +177,7 @@ function collections_listElements ()
 
 		checkSession('get');
 
-		if ($context['elements']->move($current_element, $current_move))
+		if ($elements->move($current_element, $current_move))
 			redirectexit('action=admin;area=collections;sa=elements');
 	}
 
