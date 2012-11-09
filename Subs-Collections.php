@@ -1434,7 +1434,7 @@ class collections_items extends collections_functions
 class collections_elements
 {
 	protected $valid_options = array();
-	protected $func;
+	public $func;
 
 	private $params = array();
 	private $errors = array();
