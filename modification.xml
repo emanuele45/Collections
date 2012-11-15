@@ -20,7 +20,7 @@
 	<file name="$sourcedir/Subs-List.php">
 		<operation>
 			<search position="replace"><![CDATA[$cur_data['value'] = $column['data']['function']($list_item);]]></search>
-			<add><![CDATA[$cur_data['value'] = call_user_func_array($column['data']['function'], array($list_item));,]]></add>
+			<add><![CDATA[$cur_data['value'] = call_user_func_array($column['data']['function'], array($list_item));]]></add>
 		</operation>
 	</file>
 
