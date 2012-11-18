@@ -103,7 +103,7 @@ function setup_hooks ()
 					'default' => 0
 				),
 				array(
-					'name' => 'desc_side',
+					'name' => 'cust_template',
 					'type' => 'tinyint',
 					'default' => 0
 				),
