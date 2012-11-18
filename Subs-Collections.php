@@ -142,8 +142,6 @@ function collections_listElements ()
 
 	if (isset($_GET['editel']))
 	{
-		global $context;
-
 		loadTemplate('Collections');
 		loadLanguage('Collections/Collections');
 
@@ -918,6 +916,7 @@ function collections_editCollection ()
 		$collection_data['description'] = isset($_POST['collection_edit']['description']) ? trim($smcFunc['htmlspecialchars']($_POST['collection_edit']['description'])) : '';
 		$collection_data['details'] = array();
 		$collection_data['page'] = isset($_POST['collection_edit']['page']) ? (int) $_POST['collection_edit']['page'] : 0;
+		$collection_data['cust_template'] = !empty($_POST['collection_edit']['cust_template']) ? 1 : 0;
 		foreach ($_POST['collection_edit'] as $key => $value)
 			$collection_data['details'][$key] = trim($smcFunc['htmlspecialchars']($value));
 
@@ -1003,12 +1002,14 @@ function list_getCollectionElements ($start, $items, $sort, $collection_id)
 	$collection_name = '';
 	$collection_desc = '';
 	$page = 0;
+	$cust_template = false;
 
 	if (isset($_REQUEST['save']))
 	{
 		$collection_name = !empty($_POST['collection_edit']['name']) ? $smcFunc['htmlspecialchars']($_POST['collection_edit']['name']) : '';
 		$collection_desc = !empty($_POST['collection_edit']['description']) ? $smcFunc['htmlspecialchars']($_POST['collection_edit']['description']) : '';
 		$page = isset($_POST['collection_edit']['page']) ? (int) $_POST['collection_edit']['page'] : 0;
+		$cust_template = !empty($_POST['collection_edit']['cust_template']) ? 1 : 0;
 		foreach ($_POST['collection_edit'] as $key => $value)
 			$entries[$key] = $value;
 	}
@@ -1020,7 +1021,7 @@ function list_getCollectionElements ($start, $items, $sort, $collection_id)
 			$entries[$key] = $entry['value'];
 
 		$request = $smcFunc['db_query']('', '
-			SELECT name, description, page
+			SELECT name, description, page, cust_template
 			FROM {db_prefix}collections_list
 			WHERE id_list = {int:collection}
 			ORDER BY position',
@@ -1028,7 +1029,7 @@ function list_getCollectionElements ($start, $items, $sort, $collection_id)
 				'collection' => $collection_id
 			)
 		);
-		list($collection_name, $collection_desc, $page) = $smcFunc['db_fetch_row']($request);
+		list($collection_name, $collection_desc, $page, $cust_template) = $smcFunc['db_fetch_row']($request);
 		$smcFunc['db_free_result']($request);
 	}
 
@@ -1050,6 +1051,12 @@ function list_getCollectionElements ($start, $items, $sort, $collection_id)
 			'name' => $txt['collections_collection_page'],
 			'description' => $txt['collections_collection_page_description'],
 			'value' => $page
+		),
+		array(
+			'id_element' => 'cust_template',
+			'name' => $txt['collections_collection_cust_template'],
+			'description' => $txt['collections_collection_cust_template_description'],
+			'value' => $cust_template
 		),
 	);
 
@@ -1095,10 +1102,10 @@ function collection_saveCollection ($data)
 		$smcFunc['db_insert']('',
 			'{db_prefix}collections_list',
 			array(
-				'name' => 'string-255', 'description' => 'string', 'page' => 'int', 'position' => 'int'
+				'name' => 'string-255', 'description' => 'string', 'page' => 'int', 'cust_template' => 'int', 'position' => 'int'
 			),
 			array(
-				$data['name'], $data['description'], $data['page'], $last_pos
+				$data['name'], $data['description'], $data['page'], $data['cust_template'], $last_pos
 			),
 			array(
 				'id_list'
@@ -1128,13 +1135,15 @@ function collection_saveCollection ($data)
 			SET
 				name = {string:upd_name},
 				description = {string:upd_desc},
-				page = {string:upd_page}
+				page = {string:upd_page},
+				cust_template = {int:cust_template}
 			WHERE id_list = {int:collection}',
 			array(
 				'upd_name' => $data['name'],
 				'upd_desc' => $data['description'],
 				'upd_page' => $data['page'],
 				'collection' => $data['collection_id'],
+				'cust_template' => $data['cust_template'],
 			)
 		);
 
@@ -1214,7 +1223,7 @@ function collections_show_collection ()
 	$page = isset($_GET['page']) ? (int) $_GET['page'] : 0;
 
 	$request = $smcFunc['db_query']('', '
-		SELECT id_list, name, description
+		SELECT id_list, name, description, cust_template
 		FROM {db_prefix}collections_list
 		WHERE page = {int:id_page}
 		ORDER BY position',
@@ -1230,6 +1239,7 @@ function collections_show_collection ()
 	{
 		$titles[] = $row['name'];
 		$lists_info[$row['id_list']] = $row;
+		$context['collections_list_' . $row['id_list'] . '_template'] = $row['cust_template'];
 	}
 	$smcFunc['db_free_result']($request);
 
@@ -1306,6 +1316,7 @@ function collections_show_collection ()
 								return $data[\'value\'];
 					}
 				'),
+				'style' => !empty($context['collections_list_' . $row['id_list'] . '_template']) && isset($row['position']) ? $row['position'] : '',
 			),
 		);
 
@@ -1425,10 +1436,9 @@ function collection_getElements ()
 	return $return;
 }
 
-class collections_items extends collections_functions
+class collections_items
 {
 	
-
 }
 
 class collections_elements
@@ -1438,6 +1448,7 @@ class collections_elements
 
 	private $params = array();
 	private $errors = array();
+	private $other_options = array();
 
 	public function __construct ($validate = true)
 	{
@@ -1461,6 +1472,7 @@ class collections_elements
 		),
 		'selected' => array(
 			'type' => 'select',
+			'allowed' => array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment'),
 			'validate' => create_function('$data', '
 				$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
 				return in_array($data, $allowed_types) ? $data : \'text\';'
@@ -1477,52 +1489,69 @@ class collections_elements
 				document.getElementById(\'type_values\').style.display = \'none\';
 		}
 		toggleInput(document.getElementById(\'selected\'));',
-		),
-		'is_sortable' => array(
-			'type' => 'check',
-			'validate' => create_function('$data, $selected', '
-				$sortable_types = array(\'int\', \'text\', \'largetext\', \'select\', \'increment\');
-				return !empty($data) && in_array($selected, $sortable_types) ? 1 : 0;'
 			),
-			'require' => 'selected',
-			'default' => 0,
-		),
-		'type_values' => array(
-			'type' => 'text',
-			'validate' => create_function('$data, $selected', '
-				global $smcFunc;
-				return isset($data) && ($selected == \'select\' || $selected == \'fixed\') ? trim($smcFunc[\'htmlspecialchars\']($data)) : \'\';'
+			'position' => array(
+				'type' => 'select',
+				'allowed' => array('default', 'top', 'side'),
+				'validate' => create_function('$data', '
+					$allowed_types = array(\'top\', \'side\', \'default\');
+					return in_array($data, $allowed_types) ? $data : \'default\';'
 				),
-			'require' => 'selected',
-			'only_child' => true,
-			'default' => '',
-		),
-		'bb_code' => array(
-			'type' => 'check',
-			'validate' => create_function('$data, $selected', '
-				$bbcodable_types = array(\'text\', \'largetext\', \'select\');
-				return !empty($data) && in_array($selected, $bbcodable_types) ? 1 : 0;'
+				'default' => 'default',
 			),
-			'require' => 'selected',
-			'default' => 0,
-		),
-		'head_styles' => array(
-			'type' => 'text',
-			'validate' => create_function('$data', '
-				global $smcFunc;
-				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+			'is_sortable' => array(
+				'type' => 'check',
+				'validate' => create_function('$data, $selected', '
+					$sortable_types = array(\'int\', \'text\', \'largetext\', \'select\', \'increment\');
+					return !empty($data) && in_array($selected, $sortable_types) ? 1 : 0;'
+				),
+				'require' => 'selected',
+				'default' => 0,
 			),
-			'default' => '',
-		),
-		'col_styles' => array(
-			'type' => 'text',
-			'validate' => create_function('$data', '
-				global $smcFunc;
-				return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+			'type_values' => array(
+				'type' => 'text',
+				'validate' => create_function('$data, $selected', '
+					global $smcFunc;
+					return isset($data) && ($selected == \'select\' || $selected == \'fixed\') ? trim($smcFunc[\'htmlspecialchars\']($data)) : \'\';'
+					),
+				'require' => 'selected',
+				'only_child' => true,
+				'default' => '',
 			),
-			'default' => '',
-		),
-	);
+			'bb_code' => array(
+				'type' => 'check',
+				'validate' => create_function('$data, $selected', '
+					$bbcodable_types = array(\'text\', \'largetext\', \'select\');
+					return !empty($data) && in_array($selected, $bbcodable_types) ? 1 : 0;'
+				),
+				'require' => 'selected',
+				'default' => 0,
+			),
+			'head_styles' => array(
+				'type' => 'text',
+				'validate' => create_function('$data', '
+					global $smcFunc;
+					return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+				),
+				'default' => '',
+			),
+			'col_styles' => array(
+				'type' => 'text',
+				'validate' => create_function('$data', '
+					global $smcFunc;
+					return !empty($data) ? $smcFunc[\'htmlspecialchars\']($data) : \'\';'
+				),
+				'default' => '',
+			),
+		);
+
+		$this->other_options = array(
+			'bb_code' => 0,
+			'head_styles' => '',
+			'col_styles' => '',
+			'position' => 'default',
+		);
+
 
 		if ($validate)
 			$this->validate();
@@ -1564,7 +1593,7 @@ class collections_elements
 				$this->params[$key] = $check['default'];
 		}
 
-		if (isset($_POST['name']) && empty($this->params['name']) || $smcFunc['strlen']($this->params['name']) > 255)
+		if (isset($_POST['name']) && empty($this->params['name']) || $this->func->strlen($this->params['name']) > 255)
 			$this->errors['name'] = true;
 		if (isset($_POST['description']) && empty($this->params['description']))
 			$this->errors['description'] = true;
@@ -1634,14 +1663,8 @@ class collections_elements
 
 	public function save ($id = 0)
 	{
-		$other_options = array(
-			'bb_code' => 0,
-			'head_styles' => '',
-			'col_styles' => '',
-		);
-
 		$additional = array();
-		foreach ($other_options as $option => $default)
+		foreach ($this->other_options as $option => $default)
 			if (isset($this->params[$option]))
 				$additional[$option] = $this->params[$option];
 			else
@@ -1801,6 +1824,7 @@ class collections_elements
 			'input' => isset($this->params[$key]) ? $this->params[$key] : '',
 			'error' => !empty($this->errors[$key]),
 			'options' => !empty($this->valid_options[$key]['options']) ? $this->valid_options[$key]['options'] : '',
+			'allowed' => !empty($this->valid_options[$key]['allowed']) ? $this->valid_options[$key]['allowed'] : '',
 			'script' => !empty($this->valid_options[$key]['script']) ? '
 	<script type="text/javascript"><!-- // --><![CDATA[' . $this->valid_options[$key]['script'] . '
 	// ]]></script>' : '',
@@ -1821,7 +1845,7 @@ class collections_elements
 			$return = '
 	<select id="' . $data['id'] . '" ' . $data['options'] . ' name="' . $data['id'] . '" class="' . (!empty($data['error']) ? ' error' : '') . '">';
 
-			foreach (array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment') as $type)
+			foreach ($data['allowed'] as $type)
 				$return .= '
 		<option value="' . $type . '"' . ($data['input'] == $type ? ' selected="selected"' : '') . '>' . $txt['collections_' . $type] . '</option>';
 
@@ -2007,6 +2031,11 @@ class collections_functions
 	public function db_query_row ($identifier, $db_string, $db_values, $free = true, $connection = null)
 	{
 		return $this->db_fetch_row($this->db_query($identifier, $db_string, $db_values, $connection), $free);
+	}
+
+	public function strlen ($string)
+	{
+		return $this->_smcFunc['strlen']($string);
 	}
 
 	public function loadFile ($name)

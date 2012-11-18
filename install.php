@@ -102,6 +102,11 @@ function setup_hooks ()
 					'type' => 'smallint',
 					'default' => 0
 				),
+				array(
+					'name' => 'desc_side',
+					'type' => 'tinyint',
+					'default' => 0
+				),
 				// @TODO not yet implemented
 				array(
 					'name' => 'owner',
