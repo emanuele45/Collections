@@ -126,7 +126,7 @@ function template_short_list($list_id = null)
 				$id_headers[$val['id']] = $val;
 			foreach ($row as $key => $row_data)
 			{
-				if (empty($row_data['style']))
+				if (empty($row_data['style']) || $row_data['style'] == 'default')
 				{
 					$defaults .= '
 					<tr>
