@@ -7,6 +7,11 @@
  * @copyright 2012 emanuele
  * @license BSD
  *
+ * The function template_short_list is derived from the
+ * function template_show_list present in GenericList.template.php
+ * of the SMF package:
+ * @copyright 2011 Simple Machines
+ *
  * @version 0.1.0
  */
 
@@ -42,7 +47,7 @@ function template_short_list($list_id = null)
 	if (isset($cur_list['form']))
 		echo '
 	<form action="', $cur_list['form']['href'], '" method="post"', empty($cur_list['form']['name']) ? '' : ' name="' . $cur_list['form']['name'] . '" id="' . $cur_list['form']['name'] . '"', ' accept-charset="', $context['character_set'], '">
-		<div class="generic_list">';
+		<div class="generic_list short_list short_list_', $list_id, '">';
 
 	// Show the title of the table (if any).
 	if (!empty($cur_list['title']))
@@ -130,7 +135,7 @@ function template_short_list($list_id = null)
 				{
 					$defaults .= '
 					<tr>
-						<td' . (empty($id_headers[$key]['class']) ? '' : ' class="' . $id_headers[$key]['class'] . '"') . '>' . $id_headers[$key]['label'] . '</td>' . '
+						<td' . (empty($id_headers[$key]['class']) ? '' : ' class="' . $id_headers[$key]['class'] . '"') . (empty($id_headers[$key]['style']) ? '' : ' style="' . $id_headers[$key]['style'] . '"') . '>' . $id_headers[$key]['label'] . '</td>' . '
 						<td' . (empty($row_data['class']) ? '' : ' class="' . $row_data['class'] . '"') . '>' . $row_data['value'] . '</td>
 						</tr>';
 				}
@@ -152,13 +157,12 @@ function template_short_list($list_id = null)
 
 			echo '
 					<td>
-						<table width="100%">' . $tops . '
+						<table style="width:100%" class="coll_short_tmpl">' . $tops . '
 							<tr>
 								<td>' . $sides . '</td>
-								<td>
-						<div>
-							<table>' . $defaults . '</table>
-						</div></td>
+								<td style="width:100%">
+									<table style="width:100%">' . $defaults . '</table>
+								</td>
 							</tr>
 						</table>
 					</td>';

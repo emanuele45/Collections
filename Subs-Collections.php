@@ -1235,15 +1235,26 @@ function collections_show_collection ()
 	$context['collection_lists'] = array();
 	$lists_info = array();
 	$titles = array();
+	$short_style = false;
 	while ($row = $smcFunc['db_fetch_assoc']($request))
 	{
 		$titles[] = $row['name'];
 		$lists_info[$row['id_list']] = $row;
 		$context['collections_list_' . $row['id_list'] . '_template'] = $row['cust_template'];
+		if (!empty($row['cust_template']))
+			$short_style = true;
 	}
 	$smcFunc['db_free_result']($request);
 
 	$context['page_title'] = empty($lists_info) ? $txt['collections_no_lists_in_page'] : implode(' - ', $titles);
+	if ($short_style)
+		$context['html_headers'] .= '
+		<style type="text/css">
+			table.table_grid td
+			{
+				border: 0px;
+			}
+		</style>';
 
 	if (empty($lists_info))
 		fatal_lang_error('collections_page_not_found', false);
@@ -1315,8 +1326,7 @@ function collections_show_collection ()
 							else
 								return $data[\'value\'];
 					}
-				'),
-				'style' => !empty($context['collections_list_' . $row['id_list'] . '_template']) && isset($row['position']) ? $row['position'] : '',
+				')
 			),
 		);
 
@@ -1336,6 +1346,12 @@ function collections_show_collection ()
 
 		if (!empty($row['col_styles']))
 			$current_columns[$row['id_list']]['a' . $row['id_element']]['data']['style'] = $row['col_styles'];
+
+		if (!empty($context['collections_list_' . $row['id_list'] . '_template']) && isset($row['position']))
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['data']['style'] = $row['position'];
+		elseif (!empty($context['collections_list_' . $row['id_list'] . '_template']))
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['data']['style'] = '';
+
 
 		$params['columns'][] = $row;
 	}
