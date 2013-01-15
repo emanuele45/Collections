@@ -855,14 +855,18 @@ function collections_insertNewItems ($items, $id_list)
 
 function collections_isValidEntry (&$value, $type, $validation)
 {
-	global $smcFunc;
+	global $smcFunc, $scripturl, $boardurl;
 
 	if ($type == 'check')
 		$value = !empty($value);
 	elseif ($type == 'int')
 		$value = (int) $value;
 	elseif ($type == 'text' || $type == 'largetext')
+	{
+		$value = str_replace($scripturl, '{script_url}', $value);
+		$value = str_replace($boardurl, '{board_url}', $value);
 		$value = $smcFunc['htmlspecialchars']($value);
+	}
 	elseif ($type == 'select' && !empty($validation))
 	{
 		$allowed_types = explode(',', $validation);
