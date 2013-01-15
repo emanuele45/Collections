@@ -27,7 +27,7 @@ function collections_add_permissions (&$permissionGroups, &$permissionList, &$le
 
 function collections_add_admin_menu (&$admin_areas)
 {
-	global $txt, $context;
+	global $txt, $context, $modSettings;
 
 	loadLanguage('Collections/Collections');
 	$admin_areas['layout']['areas']['collections'] = array(
@@ -41,6 +41,8 @@ function collections_add_admin_menu (&$admin_areas)
 			'elements' => array($txt['collections_elements']),
 		),
 	);
+	if (!empty($modSettings['sp_version']) && empty($modSettings['collection_sp_integrate']))
+		$admin_areas['layout']['areas']['collections']['subsections']['sp_integrate'] = array($txt['collections_sp_integrate']);
 }
 
 function CollectionsAdmin ($action_override = false)
@@ -56,6 +58,7 @@ function CollectionsAdmin ($action_override = false)
 		'save_collection' => 'collections_editCollection',
 		'move_collection' => 'collections_moveCollection',
 		'elements' => 'collections_listElements',
+		'sp_integrate' => 'collection_sp_integrate',
 	);
 
 	// This uses admin tabs - as it should!
@@ -77,6 +80,38 @@ function CollectionsAdmin ($action_override = false)
 	else
 		$subAction = isset($_GET['sa']) && in_array($_GET['sa'], array_keys($subActions)) ? $subActions[$_GET['sa']] : $subActions['show_collection'];
 	$subAction();
+}
+
+function collection_sp_integrate ()
+{
+	global $modSettings, $smcFunc;
+	checkSession('get');
+
+	if (!empty($modSettings['sp_version']) && empty($modSettings['collection_sp_integrate']))
+	{
+		$request = $smcFunc['db_query']('', '
+			SELECT MAX(function_order)
+			FROM {db_prefix}sp_functions',
+			array()
+		);
+		list($func_order) = $smcFunc['db_fetch_row']($request);
+		$smcFunc['db_free_result']($request);
+		$smcFunc['db_insert']('ignore',
+			'{db_prefix}sp_functions',
+			array(
+				'function_order' => 'int', 'name' => 'string'
+			),
+			array(
+				$func_order, 'sp_collection'
+			),
+			array(
+				'id_function'
+			)
+		);
+
+		updateSettings(array('collection_sp_integrate' => 1));
+		redirectexit('action=admin;area=collections');
+	}
 }
 
 function collections_moveCollection ()
@@ -2075,4 +2110,68 @@ class collections_functions
 		return $this;
 	}
 }
-?>
+
+/**
+ * Extending!
+ * Functions to allow use the mod in other things.
+ */
+
+/**
+ * Show a list in a SimplePortal block
+ */
+function sp_collection($parameters, $id, $return_parameters = false)
+{
+	global $context, $settings, $smcFunc, $txt, $scripturl, $user_info, $user_info, $modSettings, $boards;
+
+	$block_parameters = array(
+		'collection_id' => 'int',
+		'collection_hide_header' => 'check',
+		'collection_title' => 'text',
+		'collection_url' => 'text',
+	);
+
+	loadLanguage('Collections/Collections');
+	loadTemplate('Collections');
+
+	if ($return_parameters)
+		return $block_parameters;
+
+	$page = !empty($parameters['collection_id']) ? $parameters['collection_id'] : 0;
+	$hide_header = !empty($parameters['collection_hide_header']) ? 1 : 0;
+	$title = !empty($parameters['collection_title']) ? strtolower(trim($parameters['collection_title'])) : 'title';
+	$url = !empty($parameters['collection_url']) ? strtolower(trim($parameters['collection_url'])) : 'url';
+
+	collections_show_collection($page, true, $hide_header);
+	$returns = array();
+
+	foreach ($context['collection_lists' . $page] as $list_id)
+	{
+		$list = $context[$list_id];
+		$use_id = array();
+
+		foreach ($list['headers'] as $elem)
+		{
+			if (strtolower(trim($elem['label'])) == $title)
+				$use_id['title'] = $elem['id'];
+			elseif (strtolower(trim($elem['label'])) == $url)
+				$use_id['url'] = $elem['id'];
+		}
+
+		if (empty($use_id))
+			continue;
+
+		foreach ($list['rows'] as $row)
+			$returns[] = '<a href="' . $row[$use_id['url']]['value'] . '">' . $row[$use_id['title']]['value'] . '</a>';
+	}
+
+	echo '
+		<ul class="sp_boardsList">';
+
+	foreach ($returns as $val)
+		echo '
+			<li>' . $val . '</li>';
+
+	echo '
+		</ul>';
+}
+

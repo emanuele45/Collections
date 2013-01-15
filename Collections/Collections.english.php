@@ -67,4 +67,11 @@ $txt['collections_page_not_found'] = 'Sorry, apparently this page doesn\'t exist
 $txt['collections_no_lists_in_page'] = 'This page is empty';
 
 $txt['delete_selected'] = 'Delete selected';
-?>
+
+$txt['collections_sp_integrate'] = 'Integrate with SimplePortal';
+$txt['sp_function_sp_collection_label'] = 'Show a collection';
+$txt['sp_function_sp_collection_desc'] = 'Show a collection';
+$txt['sp_param_sp_collection_collection_id'] = 'A collection page';
+$txt['sp_param_sp_collection_collection_hide_header'] = 'Hide column headers';
+$txt['sp_param_sp_collection_collection_title'] = 'Name of the item to use as title';
+$txt['sp_param_sp_collection_collection_url'] = 'Name of the item to use as url';
