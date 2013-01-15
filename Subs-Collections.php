@@ -1297,7 +1297,7 @@ function collections_show_collection ($page = null, $embed = false, $hide_header
 			),
 			'data' => array(
 				'function' => create_function('$datas', '
-					global $txt, $sourcedir;
+					global $txt, $sourcedir, $scripturl, $boardurl;
 					$default = array(' . call_user_func_array(
 						create_function('$row', '
 							$return = \'\';
@@ -1319,6 +1319,8 @@ function collections_show_collection ($page = null, $embed = false, $hide_header
 						if (empty($data[\'value\']))
 							return \'&nbsp;\';
 						else
+						{
+							$data[\'value\'] = str_replace(array(\'{script_url}\', \'{board_url}\'), array($scripturl, $boardurl), $data[\'value\']);
 							if (!empty($data[\'bb_code\']))
 							{
 								require_once($sourcedir . \'/Subs-Post.php\');
@@ -1327,6 +1329,7 @@ function collections_show_collection ($page = null, $embed = false, $hide_header
 							}
 							else
 								return $data[\'value\'];
+						}
 					}
 				')
 			),
