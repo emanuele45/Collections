@@ -1482,28 +1482,28 @@ class collections_elements
 			'validate' => create_function('$data', '
 				global $smcFunc;
 				return trim($smcFunc[\'htmlspecialchars\']($data));'
+				),
+				'default' => '',
 			),
-			'default' => '',
-		),
-		'description' => array(
-			'type' => 'text',
-			'validate' => create_function('$data', '
-				global $smcFunc;
-				return trim($smcFunc[\'htmlspecialchars\']($data));'
+			'description' => array(
+				'type' => 'text',
+				'validate' => create_function('$data', '
+					global $smcFunc;
+					return trim($smcFunc[\'htmlspecialchars\']($data));'
+				),
+				'default' => '',
 			),
-			'default' => '',
-		),
-		'selected' => array(
-			'type' => 'select',
-			'allowed' => array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment'),
-			'validate' => create_function('$data', '
-				$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
-				return in_array($data, $allowed_types) ? $data : \'text\';'
-			),
-			'default' => 'text',
-			'has_children' => array('type_values'),
-			'options' => 'onchange="toggleInput(this)"',
-			'script' => '
+			'selected' => array(
+				'type' => 'select',
+				'allowed' => array('check', 'int', 'text', 'largetext', 'select', 'fixed', 'increment'),
+				'validate' => create_function('$data', '
+					$allowed_types = array(\'check\', \'int\', \'text\', \'largetext\', \'select\', \'fixed\', \'increment\');
+					return in_array($data, $allowed_types) ? $data : \'text\';'
+				),
+				'default' => 'text',
+				'has_children' => array('type_values'),
+				'options' => 'onchange="toggleInput(this)"',
+				'script' => '
 		function toggleInput(elem)
 		{
 			if (elem.options[elem.selectedIndex].value == \'select\' || elem.options[elem.selectedIndex].value == \'fixed\')
