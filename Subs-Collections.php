@@ -1212,15 +1212,17 @@ function collection_saveCollection ($data)
 /**
  * This function is used to display any kind of list
  */
-function collections_show_collection ()
+function collections_show_collection ($page = null, $embed = false, $hide_header = false)
 {
 	global $smcFunc, $context, $sourcedir, $txt, $scripturl;
 
 	loadTemplate('Collections');
 	loadLanguage('Collections/Collections');
-	$context['sub_template'] = 'collection_page';
+	if (!$embed)
+		$context['sub_template'] = 'collection_page';
 
-	$page = isset($_GET['page']) ? (int) $_GET['page'] : 0;
+	if ($page === null)
+		$page = isset($_GET['page']) ? (int) $_GET['page'] : 0;
 
 	$request = $smcFunc['db_query']('', '
 		SELECT id_list, name, description, cust_template
@@ -1232,7 +1234,7 @@ function collections_show_collection ()
 		)
 	);
 
-	$context['collection_lists'] = array();
+	$context['collection_lists' . ($embed ? $page : '')] = array();
 	$lists_info = array();
 	$titles = array();
 	$short_style = false;
@@ -1256,7 +1258,7 @@ function collections_show_collection ()
 			}
 		</style>';
 
-	if (empty($lists_info))
+	if (empty($lists_info) && !$embed)
 		fatal_lang_error('collections_page_not_found', false);
 
 	// This will grab all the info about the columns
@@ -1282,7 +1284,7 @@ function collections_show_collection ()
 		if (empty($row['enabled']))
 			continue;
 
-		$header = empty($row['description']) ? $row['name'] : '<span title="' . $smcFunc['htmlspecialchars']($row['description']) . '">' . $row['name'] . '</span>';
+		$header = empty($row['description']) || $embed ? $row['name'] : '<span title="' . $smcFunc['htmlspecialchars']($row['description']) . '">' . $row['name'] . '</span>';
 
 		$opt = @unserialize($row['options']);
 		if (!empty($opt))
@@ -1330,7 +1332,7 @@ function collections_show_collection ()
 			),
 		);
 
-		if (!empty($row['is_sortable']))
+		if (!empty($row['is_sortable']) && !$embed)
 		{
 			if (!isset($default_sort_col))
 				$default_sort_col = 'a' . $row['id_element'];
@@ -1343,6 +1345,8 @@ function collections_show_collection ()
 
 		if (!empty($row['head_styles']))
 			$current_columns[$row['id_list']]['a' . $row['id_element']]['header']['style'] = $row['head_styles'];
+		if ($hide_header)
+			$current_columns[$row['id_list']]['a' . $row['id_element']]['header']['style'] = 'display: none;';
 
 		if (!empty($row['col_styles']))
 			$current_columns[$row['id_list']]['a' . $row['id_element']]['data']['style'] = $row['col_styles'];
@@ -1366,7 +1370,7 @@ function collections_show_collection ()
 		$params['is_sortable'] = !empty($is_sortable[$row['id_list']]);
 		$listOptions = array(
 			'id' => 'collections_list_' . $row['id_list'],
-			'title' => $row['name'],
+			'title' => !$embed ? $row['name'] : '',
 			'width' => '100%',
 			'base_href' => $scripturl . '?action=collections;page=' . $page,
 			'no_items_label' => $txt['collections_no_elements_found'],
@@ -1400,7 +1404,7 @@ function collections_show_collection ()
 		// Create the request list.
 		createList($listOptions);
 
-		$context['collection_lists'][] = 'collections_list_' . $row['id_list'];
+		$context['collection_lists' . ($embed ? $page : '')][] = 'collections_list_' . $row['id_list'];
 	}
 }
 
